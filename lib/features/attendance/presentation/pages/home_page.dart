@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/attendance_cubit.dart';
 import 'attendance_page.dart';
+import 'settings_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -75,10 +76,21 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
+  void _openSettings() {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const SettingsPage()));
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scaffoldColor = isDark
+        ? const Color(0xFF07070C)
+        : const Color(0xFFF7F2E8);
+
     return Scaffold(
-      backgroundColor: const Color(0xFF07070C),
+      backgroundColor: scaffoldColor,
       body: Stack(
         children: [
           // Animated gradient orbs background
@@ -136,7 +148,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   gradient: RadialGradient(
                     colors: [
                       const Color(0xFFCA8A04).withValues(
-                          alpha: 0.12 + 0.05 * math.sin(t * 2 * math.pi)),
+                        alpha: 0.12 + 0.05 * math.sin(t * 2 * math.pi),
+                      ),
                       Colors.transparent,
                     ],
                   ),
@@ -155,7 +168,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   gradient: RadialGradient(
                     colors: [
                       const Color(0xFF00E5FF).withValues(
-                          alpha: 0.07 + 0.03 * math.cos(t * 2 * math.pi)),
+                        alpha: 0.07 + 0.03 * math.cos(t * 2 * math.pi),
+                      ),
                       Colors.transparent,
                     ],
                   ),
@@ -163,9 +177,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               ),
             ),
             // Subtle grid
-            Positioned.fill(
-              child: CustomPaint(painter: _GridPainter()),
-            ),
+            Positioned.fill(child: CustomPaint(painter: _GridPainter())),
           ],
         );
       },
@@ -173,6 +185,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildTopBar() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = isDark ? Colors.white : const Color(0xFF1F1A14);
+    final mutedColor = isDark
+        ? Colors.white.withValues(alpha: 0.3)
+        : const Color(0xFF1F1A14).withValues(alpha: 0.55);
+
     return Row(
       children: [
         // Logo
@@ -198,7 +216,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             Text(
               'Attendance System',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.3),
+                color: mutedColor,
                 fontSize: 11,
                 letterSpacing: 1.2,
               ),
@@ -206,14 +224,31 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ],
         ),
         const Spacer(),
+        IconButton(
+          onPressed: _openSettings,
+          icon: Icon(
+            Icons.settings_rounded,
+            color: titleColor.withValues(alpha: 0.75),
+          ),
+          style: IconButton.styleFrom(
+            backgroundColor: isDark
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.04),
+          ),
+        ),
+        const SizedBox(width: 10),
         // Date chip
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.04),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.04)
+                : Colors.black.withValues(alpha: 0.04),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.08),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.black.withValues(alpha: 0.06),
             ),
           ),
           child: Row(
@@ -227,7 +262,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               Text(
                 _formattedDate(),
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.6),
+                  color: mutedColor,
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
                   letterSpacing: 0.3,
@@ -241,6 +276,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildHeroSection() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final titleColor = isDark ? Colors.white : const Color(0xFF1F1A14);
+    final bodyColor = isDark
+        ? Colors.white.withValues(alpha: 0.4)
+        : const Color(0xFF1F1A14).withValues(alpha: 0.68);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -285,10 +326,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ),
         ),
         const SizedBox(height: 20),
-        const Text(
+        Text(
           'Mark your\nattendance',
           style: TextStyle(
-            color: Colors.white,
+            color: titleColor,
             fontSize: 42,
             fontWeight: FontWeight.w800,
             height: 1.15,
@@ -298,17 +339,21 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         const SizedBox(height: 14),
         Text(
           'Look into the camera and we\'ll handle the rest.\nFace recognition takes just a few seconds.',
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.4),
-            fontSize: 15,
-            height: 1.6,
-          ),
+          style: TextStyle(color: bodyColor, fontSize: 15, height: 1.6),
         ),
       ],
     );
   }
 
   Widget _buildStatsRow() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark
+        ? Colors.white.withValues(alpha: 0.03)
+        : Colors.white.withValues(alpha: 0.82);
+    final borderColor = isDark
+        ? Colors.white.withValues(alpha: 0.07)
+        : const Color(0xFFE5D8C5);
+
     return Row(
       children: [
         _StatCard(
@@ -316,6 +361,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           value: '24',
           subtitle: 'checked in',
           color: const Color(0xFF00E676),
+          cardColor: cardColor,
+          borderColor: borderColor,
         ),
         const SizedBox(width: 12),
         _StatCard(
@@ -323,6 +370,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           value: '99.8%',
           subtitle: 'recognition',
           color: const Color(0xFF00E5FF),
+          cardColor: cardColor,
+          borderColor: borderColor,
         ),
         const SizedBox(width: 12),
         _StatCard(
@@ -330,6 +379,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           value: '< 3s',
           subtitle: 'avg scan time',
           color: const Color(0xFFCA8A04),
+          cardColor: cardColor,
+          borderColor: borderColor,
         ),
       ],
     );
@@ -351,8 +402,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFFCA8A04).withValues(
-                      alpha: 0.3 + 0.15 * _pulseController.value),
+                  color: const Color(
+                    0xFFCA8A04,
+                  ).withValues(alpha: 0.3 + 0.15 * _pulseController.value),
                   blurRadius: 24 + 8 * _pulseController.value,
                   offset: const Offset(0, 6),
                 ),
@@ -399,11 +451,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildBottomNote() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Center(
       child: Text(
         'Your biometric data is processed on-device and never stored.',
         style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.2),
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.2)
+              : const Color(0xFF1F1A14).withValues(alpha: 0.45),
           fontSize: 12,
           height: 1.5,
         ),
@@ -415,8 +470,18 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   String _formattedDate() {
     final now = DateTime.now();
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     return '${days[now.weekday - 1]}, ${months[now.month - 1]} ${now.day}';
@@ -428,12 +493,16 @@ class _StatCard extends StatelessWidget {
   final String value;
   final String subtitle;
   final Color color;
+  final Color cardColor;
+  final Color borderColor;
 
   const _StatCard({
     required this.label,
     required this.value,
     required this.subtitle,
     required this.color,
+    required this.cardColor,
+    required this.borderColor,
   });
 
   @override
@@ -442,11 +511,9 @@ class _StatCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.03),
+          color: cardColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.07),
-          ),
+          border: Border.all(color: borderColor),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -454,7 +521,9 @@ class _StatCard extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.35),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white.withValues(alpha: 0.35)
+                    : const Color(0xFF1F1A14).withValues(alpha: 0.45),
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 1.2,
@@ -474,7 +543,9 @@ class _StatCard extends StatelessWidget {
             Text(
               subtitle,
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.25),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white.withValues(alpha: 0.25)
+                    : const Color(0xFF1F1A14).withValues(alpha: 0.38),
                 fontSize: 10,
               ),
             ),
