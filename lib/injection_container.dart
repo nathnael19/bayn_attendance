@@ -37,7 +37,7 @@ Future<void> init() async {
     () => AttendanceRemoteDatasourceImpl(httpClient: sl()),
   );
   sl.registerLazySingleton<FaceRecognitionDatasource>(
-    () => FaceRecognitionDatasourceImpl(httpClient: sl()),
+    () => FaceRecognitionDatasourceImpl(personLocalDatasource: sl()),
   );
 
   // ── Repositories ──────────────────────────────────────────
@@ -55,15 +55,8 @@ Future<void> init() async {
 
   // ── Cubits (factory — fresh instance each time) ───────────
   sl.registerFactory(
-    () => AttendanceCubit(
-      faceRecognition: sl(),
-      logAttendance: sl(),
-    ),
+    () => AttendanceCubit(faceRecognition: sl(), logAttendance: sl()),
   );
-  sl.registerFactory(
-    () => RegisterCubit(registerPersonUseCase: sl()),
-  );
-  sl.registerFactory(
-    () => HomeStatsCubit(getTodayStats: sl()),
-  );
+  sl.registerFactory(() => RegisterCubit(registerPersonUseCase: sl()));
+  sl.registerFactory(() => HomeStatsCubit(getTodayStats: sl()));
 }

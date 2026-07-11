@@ -33,7 +33,7 @@ class MyApp extends StatelessWidget {
           themeMode: themeMode,
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,
-          home: const HomePage(),
+          home: const HomePage(enableAutoAttendanceRedirect: true),
         );
       },
     );
