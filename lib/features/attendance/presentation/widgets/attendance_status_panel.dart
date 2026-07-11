@@ -130,8 +130,8 @@ class _ScanningPanelState extends State<_ScanningPanel> with SingleTickerProvide
                       ? 'Hold still...'
                       : 'Face your camera',
               key: ValueKey(widget.isScanning ? 'scan' : widget.faceVisible ? 'hold' : 'wait'),
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1F1A14),
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
                 letterSpacing: -0.3,
@@ -149,7 +149,7 @@ class _ScanningPanelState extends State<_ScanningPanel> with SingleTickerProvide
                       : 'Keep your face centered inside the frame',
               key: ValueKey(widget.isScanning ? 'scan_sub' : widget.faceVisible ? 'hold_sub' : 'wait_sub'),
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.45),
+                color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.45) : const Color(0xFF1F1A14).withValues(alpha: 0.55),
                 fontSize: 14,
                 height: 1.5,
               ),
@@ -186,7 +186,7 @@ class _MetricChip extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-            color: Colors.white.withValues(alpha: 0.35),
+            color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.35) : const Color(0xFF1F1A14).withValues(alpha: 0.45),
             fontSize: 9,
             letterSpacing: 1.5,
             fontWeight: FontWeight.w600,
@@ -249,15 +249,15 @@ class _SuccessPanel extends StatelessWidget {
           Text(
             'Welcome back,',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.5),
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.5) : const Color(0xFF1F1A14).withValues(alpha: 0.55),
               fontSize: 14,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             state.employeeName,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1F1A14),
               fontSize: 26,
               fontWeight: FontWeight.w800,
               letterSpacing: -0.5,
@@ -269,9 +269,9 @@ class _SuccessPanel extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.04),
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.04) : Colors.black.withValues(alpha: 0.04),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+              border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.06)),
             ),
             child: Column(
               children: [
@@ -316,7 +316,7 @@ class _SuccessPanel extends StatelessWidget {
           Text(
             'Have a great day! Your attendance is logged.',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.35),
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.35) : const Color(0xFF1F1A14).withValues(alpha: 0.45),
               fontSize: 13,
               height: 1.5,
             ),
@@ -368,10 +368,10 @@ class _FailurePanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          const Text(
+          Text(
             'Face not recognized',
             style: TextStyle(
-              color: Colors.white,
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1F1A14),
               fontSize: 22,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.3,
@@ -381,7 +381,7 @@ class _FailurePanel extends StatelessWidget {
           Text(
             'Make sure your face is well-lit and centered',
             style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.45),
+              color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withValues(alpha: 0.45) : const Color(0xFF1F1A14).withValues(alpha: 0.55),
               fontSize: 14,
               height: 1.5,
             ),
