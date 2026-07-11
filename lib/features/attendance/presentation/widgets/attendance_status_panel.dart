@@ -265,6 +265,7 @@ class _SuccessPanel extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           // Time & date chip
+          // Details container
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
@@ -272,20 +273,42 @@ class _SuccessPanel extends StatelessWidget {
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
+            child: Column(
               children: [
-                const Icon(Icons.schedule_rounded, color: Color(0xFFCA8A04), size: 18),
-                const SizedBox(width: 10),
-                Text(
-                  'Clocked in at ${state.time}',
-                  style: const TextStyle(
-                    color: Color(0xFFCA8A04),
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.2,
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.schedule_rounded, color: Color(0xFFCA8A04), size: 18),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Clocked in at ${state.time}',
+                      style: const TextStyle(
+                        color: Color(0xFFCA8A04),
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
                 ),
+                if (state.confidence > 0) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.analytics_outlined, color: Color(0xFF00E5FF), size: 16),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Accuracy: ${(state.confidence * 100).toStringAsFixed(1)}%',
+                        style: const TextStyle(
+                          color: Color(0xFF00E5FF),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
