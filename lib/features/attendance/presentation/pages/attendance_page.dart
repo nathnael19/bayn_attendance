@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import '../cubit/attendance_cubit.dart';
 import '../cubit/attendance_state.dart';
 import '../widgets/biometric_scan_frame.dart';
@@ -27,6 +28,9 @@ class _AttendancePageState extends State<AttendancePage>
   late final FaceDetector _faceDetector;
   bool _isDetecting = false;
   bool _faceVisible = false;
+
+  // Text-to-speech
+  final FlutterTts _tts = FlutterTts();
 
   // Header glow animation
   late AnimationController _headerGlowController;
@@ -52,6 +56,7 @@ class _AttendancePageState extends State<AttendancePage>
       ),
     );
 
+    _initializeTts();
     _initializeCamera();
 
     _headerGlowController = AnimationController(
@@ -72,6 +77,18 @@ class _AttendancePageState extends State<AttendancePage>
       vsync: this,
       duration: const Duration(milliseconds: 1800),
     );
+  }
+
+  Future<void> _initializeTts() async {
+    await _tts.setLanguage('en-US');
+    await _tts.setSpeechRate(0.5);
+    await _tts.setVolume(1.0);
+    await _tts.setPitch(1.0);
+  }
+
+  Future<void> _speak(String message) async {
+    await _tts.stop();
+    await _tts.speak(message);
   }
 
   Future<void> _initializeCamera() async {
@@ -183,6 +200,7 @@ class _AttendancePageState extends State<AttendancePage>
 
   @override
   void dispose() {
+    _tts.stop();
     _cameraController?.stopImageStream().then((_) {
       _cameraController?.dispose();
     }).catchError((_) {
@@ -202,7 +220,10 @@ class _AttendancePageState extends State<AttendancePage>
       body: BlocConsumer<AttendanceCubit, AttendanceState>(
         listener: (context, state) {
           if (state is AttendanceSuccess) {
+            _speak('Attendance marked successfully.');
             _onSuccess();
+          } else if (state is AttendanceFailure) {
+            _speak('Failed to register attendance. Please try again.');
           }
         },
         builder: (context, state) {
