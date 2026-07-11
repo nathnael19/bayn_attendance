@@ -14,11 +14,16 @@ class AttendanceScanning extends AttendanceState {}
 class AttendanceSuccess extends AttendanceState {
   final String employeeName;
   final String time;
+  final double confidence;
 
-  const AttendanceSuccess({required this.employeeName, required this.time});
+  const AttendanceSuccess({
+    required this.employeeName,
+    required this.time,
+    this.confidence = 0.0,
+  });
 
   @override
-  List<Object> get props => [employeeName, time];
+  List<Object> get props => [employeeName, time, confidence];
 }
 
 class AttendanceFailure extends AttendanceState {
