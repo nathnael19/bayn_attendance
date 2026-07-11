@@ -2,6 +2,9 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../cubit/attendance_cubit.dart';
+import '../cubit/home_stats_cubit.dart';
+import '../cubit/home_stats_state.dart';
+import '../../../../injection_container.dart' as di;
 import 'attendance_page.dart';
 import 'settings_page.dart';
 
@@ -62,7 +65,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     Navigator.of(context).push(
       PageRouteBuilder(
         pageBuilder: (_, animation, __) => BlocProvider(
-          create: (_) => AttendanceCubit(),
+          create: (_) => di.sl<AttendanceCubit>(),
           child: const AttendancePage(),
         ),
         transitionsBuilder: (_, animation, __, child) {
@@ -224,19 +227,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ],
         ),
         const Spacer(),
-        IconButton(
-          onPressed: _openSettings,
-          icon: Icon(
-            Icons.settings_rounded,
-            color: titleColor.withValues(alpha: 0.75),
-          ),
-          style: IconButton.styleFrom(
-            backgroundColor: isDark
-                ? Colors.white.withValues(alpha: 0.05)
-                : Colors.black.withValues(alpha: 0.04),
-          ),
-        ),
-        const SizedBox(width: 10),
         // Date chip
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
@@ -269,6 +259,20 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 ),
               ),
             ],
+          ),
+        ),
+        const SizedBox(width: 10),
+        // Settings icon
+        IconButton(
+          onPressed: _openSettings,
+          icon: Icon(
+            Icons.settings_rounded,
+            color: titleColor.withValues(alpha: 0.75),
+          ),
+          style: IconButton.styleFrom(
+            backgroundColor: isDark
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.04),
           ),
         ),
       ],
@@ -346,43 +350,57 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildStatsRow() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark
-        ? Colors.white.withValues(alpha: 0.03)
-        : Colors.white.withValues(alpha: 0.82);
-    final borderColor = isDark
-        ? Colors.white.withValues(alpha: 0.07)
-        : const Color(0xFFE5D8C5);
+    return BlocBuilder<HomeStatsCubit, HomeStatsState>(
+      builder: (context, state) {
+        String total = '-';
+        String accuracy = '-';
+        String speed = '-';
 
-    return Row(
-      children: [
-        _StatCard(
-          label: 'Today',
-          value: '24',
-          subtitle: 'checked in',
-          color: const Color(0xFF00E676),
-          cardColor: cardColor,
-          borderColor: borderColor,
-        ),
-        const SizedBox(width: 12),
-        _StatCard(
-          label: 'Accuracy',
-          value: '99.8%',
-          subtitle: 'recognition',
-          color: const Color(0xFF00E5FF),
-          cardColor: cardColor,
-          borderColor: borderColor,
-        ),
-        const SizedBox(width: 12),
-        _StatCard(
-          label: 'Speed',
-          value: '< 3s',
-          subtitle: 'avg scan time',
-          color: const Color(0xFFCA8A04),
-          cardColor: cardColor,
-          borderColor: borderColor,
-        ),
-      ],
+        if (state is HomeStatsLoaded) {
+          total = state.stats.totalCheckedIn.toString();
+          accuracy = state.stats.accuracyLabel;
+          speed = state.stats.scanTimeLabel;
+        }
+
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final cardColor = isDark
+            ? Colors.white.withValues(alpha: 0.03)
+            : Colors.white.withValues(alpha: 0.82);
+        final borderColor = isDark
+            ? Colors.white.withValues(alpha: 0.07)
+            : const Color(0xFFE5D8C5);
+
+        return Row(
+          children: [
+            _StatCard(
+              label: 'Today',
+              value: total,
+              subtitle: 'checked in',
+              color: const Color(0xFF00E676),
+              cardColor: cardColor,
+              borderColor: borderColor,
+            ),
+            const SizedBox(width: 12),
+            _StatCard(
+              label: 'Accuracy',
+              value: accuracy,
+              subtitle: 'recognition',
+              color: const Color(0xFF00E5FF),
+              cardColor: cardColor,
+              borderColor: borderColor,
+            ),
+            const SizedBox(width: 12),
+            _StatCard(
+              label: 'Speed',
+              value: speed,
+              subtitle: 'avg scan time',
+              color: const Color(0xFFCA8A04),
+              cardColor: cardColor,
+              borderColor: borderColor,
+            ),
+          ],
+        );
+      },
     );
   }
 
