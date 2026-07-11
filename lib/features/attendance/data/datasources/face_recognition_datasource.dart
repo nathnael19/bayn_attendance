@@ -1,23 +1,13 @@
-import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import 'package:image/image.dart' as img;
+
+import 'person_local_datasource.dart';
+import '../models/person_model.dart';
 
 // ─────────────────────────────────────────────────────────────
-//  TODO (Backend team): fill in your face recognition API details
-// ─────────────────────────────────────────────────────────────
 
-/// Base URL of the face recognition backend.
-/// This is THE most critical endpoint — the core of attendance matching.
-/// Example: 'https://api.yourserver.com/v1'
-// TODO: replace with your actual base URL
-const String _kBaseUrl = '';
-
-/// API key if required.
-// TODO: add your API key or remove if not needed
-const String _kApiKey = '';
-
-// ─────────────────────────────────────────────────────────────
+const int _kHashSize = 8;
+const int _kMaxDistanceForMatch = 18;
 
 /// Result returned after a face is matched against the registered persons.
 class RecognitionResult {
@@ -48,11 +38,9 @@ class RecognitionResult {
   /// }
   factory RecognitionResult.fromJson(Map<String, dynamic> json) {
     return RecognitionResult(
-      personId: json['person_id']?.toString() ?? '',  // TODO: adjust key
-      personName: json['name']?.toString() ?? 'Unknown', // TODO: adjust key
-      department: json['department']?.toString() ?? '', // TODO: adjust key
-      // TODO: if your API returns a distance score instead of confidence,
-      // convert it here, e.g.: confidence = 1.0 - json['distance']
+      personId: json['person_id']?.toString() ?? '',
+      personName: json['name']?.toString() ?? 'Unknown',
+      department: json['department']?.toString() ?? '',
       confidence: (json['confidence'] as num?)?.toDouble() ?? 0.0,
     );
   }
@@ -61,77 +49,113 @@ class RecognitionResult {
 // ─────────────────────────────────────────────────────────────
 
 abstract class FaceRecognitionDatasource {
-  /// Send a still face image to the backend for recognition.
+  /// Compare a captured face image against locally stored registration photos.
   /// Returns a [RecognitionResult] on a successful match.
   /// Throws [FaceNotRecognizedException] if no match found.
-  /// Throws [BackendNotConfiguredException] if URL is not set.
   Future<RecognitionResult> recognize(String imagePath);
 }
 
 class FaceRecognitionDatasourceImpl implements FaceRecognitionDatasource {
-  final http.Client httpClient;
-  FaceRecognitionDatasourceImpl({required this.httpClient});
+  final PersonLocalDatasource personLocalDatasource;
+
+  FaceRecognitionDatasourceImpl({required this.personLocalDatasource});
 
   @override
   Future<RecognitionResult> recognize(String imagePath) async {
-    // TODO (Backend team): confirm endpoint with your API docs.
-    // This endpoint receives an image and returns the matched person.
-    // Example: POST /faces/recognize
-    const endpoint = '/faces/recognize'; // TODO: update if different
-
-    if (_kBaseUrl.isEmpty) {
-      debugPrint(
-          '[FaceRecognition] Base URL not set — cannot perform recognition.');
-      throw const BackendNotConfiguredException();
-    }
-
-    final uri = Uri.parse('$_kBaseUrl$endpoint');
-
-    // Build multipart request to upload the captured face image
-    final request = http.MultipartRequest('POST', uri);
-
-    if (_kApiKey.isNotEmpty) {
-      request.headers['X-Api-Key'] = _kApiKey;
-    }
-    // TODO: add Authorization header if using JWT
-    // request.headers['Authorization'] = 'Bearer $yourToken';
-
-    final file = File(imagePath);
-    if (!file.existsSync()) {
+    final capturedFile = File(imagePath);
+    if (!capturedFile.existsSync()) {
       throw Exception('Captured image file not found: $imagePath');
     }
 
-    // TODO: confirm field name your backend expects for the image
-    request.files.add(
-      await http.MultipartFile.fromPath(
-        'image', // TODO: rename if your API uses a different field name
-        file.path,
-      ),
-    );
+    final capturedHash = _imageHash(capturedFile);
+    final persons = await personLocalDatasource.getAllPersons();
 
-    // TODO: add any extra fields your backend needs (e.g. camera type, timestamp)
-    // request.fields['timestamp'] = DateTime.now().toIso8601String();
-
-    final streamed = await request.send();
-    final response = await http.Response.fromStream(streamed);
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      final body = jsonDecode(response.body) as Map<String, dynamic>;
-
-      // TODO: if your backend returns a "no match" as a 200 with a flag,
-      // check that flag here and throw FaceNotRecognizedException accordingly.
-      // Example:
-      // if (body['matched'] == false) throw const FaceNotRecognizedException();
-
-      return RecognitionResult.fromJson(body);
-    } else if (response.statusCode == 404) {
-      // Many backends return 404 when no face matches
+    if (persons.isEmpty) {
       throw const FaceNotRecognizedException();
-    } else {
-      throw Exception(
-          'Recognition API returned ${response.statusCode}: ${response.body}');
+    }
+
+    PersonModel? bestPerson;
+    int bestDistance = 1 << 30;
+
+    for (final person in persons) {
+      for (final imagePath in _allStoredImages(person)) {
+        final imageFile = File(imagePath);
+        if (!imageFile.existsSync()) continue;
+
+        final distance = _hashDistance(capturedHash, _imageHash(imageFile));
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestPerson = person;
+        }
+      }
+    }
+
+    if (bestPerson == null || bestDistance > _kMaxDistanceForMatch) {
+      throw const FaceNotRecognizedException();
+    }
+
+    final confidence = 1.0 - (bestDistance / (_kHashSize * _kHashSize));
+    return RecognitionResult(
+      personId: bestPerson.serverId ?? bestPerson.employeeId,
+      personName: bestPerson.name,
+      department: bestPerson.department,
+      confidence: confidence.clamp(0.0, 1.0),
+    );
+  }
+}
+
+List<String> _allStoredImages(PersonModel person) {
+  final images = <String>[];
+  for (final entry in person.faceImagePaths.entries) {
+    images.addAll(entry.value);
+  }
+  return images;
+}
+
+BigInt _imageHash(File file) {
+  final bytes = file.readAsBytesSync();
+  final decoded = img.decodeImage(bytes);
+  if (decoded == null) {
+    throw Exception('Unsupported image file: ${file.path}');
+  }
+
+  final resized = img.copyResize(
+    decoded,
+    width: _kHashSize + 1,
+    height: _kHashSize,
+  );
+  final grayscale = img.grayscale(resized);
+
+  var hash = BigInt.zero;
+  var bitIndex = 0;
+
+  for (var y = 0; y < _kHashSize; y++) {
+    for (var x = 0; x < _kHashSize; x++) {
+      final left = grayscale.getPixel(x, y).r.toInt();
+      final right = grayscale.getPixel(x + 1, y).r.toInt();
+      if (left > right) {
+        hash |= (BigInt.one << bitIndex);
+      }
+      bitIndex++;
     }
   }
+
+  return hash;
+}
+
+int _hashDistance(BigInt a, BigInt b) {
+  final xor = a ^ b;
+  var distance = 0;
+  var value = xor;
+
+  while (value > BigInt.zero) {
+    if ((value & BigInt.one) == BigInt.one) {
+      distance++;
+    }
+    value = value >> 1;
+  }
+
+  return distance;
 }
 
 // ── Custom exceptions ─────────────────────────────────────────
@@ -140,11 +164,4 @@ class FaceNotRecognizedException implements Exception {
   const FaceNotRecognizedException();
   @override
   String toString() => 'No matching face found in the database.';
-}
-
-class BackendNotConfiguredException implements Exception {
-  const BackendNotConfiguredException();
-  @override
-  String toString() =>
-      'Face recognition backend not configured: set _kBaseUrl in face_recognition_datasource.dart';
 }

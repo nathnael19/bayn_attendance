@@ -8,10 +8,8 @@ class AttendanceCubit extends Cubit<AttendanceState> {
   final FaceRecognitionDatasource faceRecognition;
   final LogAttendance logAttendance;
 
-  AttendanceCubit({
-    required this.faceRecognition,
-    required this.logAttendance,
-  }) : super(AttendanceInitial());
+  AttendanceCubit({required this.faceRecognition, required this.logAttendance})
+    : super(AttendanceInitial());
 
   bool _isProcessing = false;
 
@@ -24,12 +22,12 @@ class AttendanceCubit extends Cubit<AttendanceState> {
   }
 
   /// Called by the page after capturing a still image during scanning.
-  /// Sends the image to the recognition backend, then logs the result locally.
+  /// Sends the image to the local recognizer, then logs the result locally.
   Future<void> recognizeFace(String imagePath) async {
     if (state is! AttendanceScanning) return;
 
     try {
-      // ── Call face recognition backend ─────────────────────
+      // ── Call face recognition matcher ──────────────────────
       final result = await faceRecognition.recognize(imagePath);
 
       // ── Log the successful check-in ────────────────────────
@@ -50,25 +48,25 @@ class AttendanceCubit extends Cubit<AttendanceState> {
       final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
       final timeStr = '$displayHour:$minute $period';
 
-      emit(AttendanceSuccess(
-        employeeName: result.personName,
-        time: timeStr,
-        confidence: result.confidence,
-      ));
+      emit(
+        AttendanceSuccess(
+          employeeName: result.personName,
+          time: timeStr,
+          confidence: result.confidence,
+        ),
+      );
     } on FaceNotRecognizedException {
       _isProcessing = false;
-      emit(const AttendanceFailure(
-          message: 'Face not recognized. Please try again.'));
-    } on BackendNotConfiguredException {
-      // Backend not set up yet — emit a clear message to the dev
-      _isProcessing = false;
-      emit(const AttendanceFailure(
-          message:
-              'Recognition backend not configured. Set _kBaseUrl in face_recognition_datasource.dart'));
+      emit(
+        const AttendanceFailure(
+          message: 'Face not recognized. Please try again.',
+        ),
+      );
     } catch (e) {
       _isProcessing = false;
-      emit(AttendanceFailure(
-          message: 'Something went wrong. Please try again.'));
+      emit(
+        AttendanceFailure(message: 'Something went wrong. Please try again.'),
+      );
     }
   }
 
