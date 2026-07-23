@@ -4,7 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/theme_cubit.dart';
 import '../../../../injection_container.dart' as di;
 import '../cubit/register_cubit.dart';
+import '../cubit/users_cubit.dart';
 import 'register_page.dart';
+import 'users_page.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -132,6 +134,51 @@ class SettingsPage extends StatelessWidget {
                           'Register a Person',
                           style: TextStyle(
                             color: Color(0xFF1C1917),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                GestureDetector(
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => BlocProvider(
+                        create: (_) => di.sl<UsersCubit>(),
+                        child: const UsersPage(),
+                      ),
+                    ),
+                  ),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.06)
+                          : Colors.black.withValues(alpha: 0.04),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.1)
+                            : Colors.black.withValues(alpha: 0.08),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.people_rounded,
+                          color: isDark ? Colors.white.withValues(alpha: 0.7) : const Color(0xFF1F1A14).withValues(alpha: 0.7),
+                          size: 18,
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          'View Users',
+                          style: TextStyle(
+                            color: isDark ? Colors.white.withValues(alpha: 0.85) : const Color(0xFF1F1A14).withValues(alpha: 0.85),
                             fontSize: 15,
                             fontWeight: FontWeight.w700,
                           ),
