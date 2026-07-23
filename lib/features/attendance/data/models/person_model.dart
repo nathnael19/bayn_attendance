@@ -19,21 +19,27 @@ class PersonModel extends Person {
   // ── SQLite ────────────────────────────────────────────────
 
   factory PersonModel.fromMap(Map<String, dynamic> map) {
-    // faceImagePaths is stored as a JSON string in SQLite
-    final raw = map['face_image_paths'] as String? ?? '{}';
-    final decoded = jsonDecode(raw) as Map<String, dynamic>;
-    final faceImagePaths = decoded.map(
-      (k, v) => MapEntry(k, List<String>.from(v as List)),
-    );
+    Map<String, List<String>> faceImagePaths = {};
+    try {
+      final raw = map['face_image_paths'] as String? ?? '{}';
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic>) {
+        faceImagePaths = decoded.map(
+          (k, v) => MapEntry(k, v is List ? List<String>.from(v.whereType<String>()) : <String>[]),
+        );
+      }
+    } catch (_) {
+      faceImagePaths = {};
+    }
 
     return PersonModel(
       localId: map['id'] as int?,
       serverId: map['server_id'] as String?,
-      name: map['name'] as String,
-      employeeId: map['employee_id'] as String,
-      department: map['department'] as String,
+      name: (map['name'] as String?) ?? '',
+      employeeId: (map['employee_id'] as String?) ?? '',
+      department: (map['department'] as String?) ?? '',
       faceImagePaths: faceImagePaths,
-      registeredAt: DateTime.parse(map['registered_at'] as String),
+      registeredAt: DateTime.tryParse(map['registered_at'] as String? ?? '') ?? DateTime.now(),
       isSynced: (map['is_synced'] as int? ?? 0) == 1,
     );
   }
