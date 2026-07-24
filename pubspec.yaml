@@ -47,6 +47,7 @@ dependencies:
   http: ^1.4.0
   image: ^4.2.0
   tflite_flutter: ^0.12.1
+  google_fonts: ^8.2.0
 
 dev_dependencies:
   flutter_test:
