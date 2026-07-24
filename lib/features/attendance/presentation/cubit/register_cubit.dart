@@ -22,6 +22,8 @@ class RegisterCubit extends Cubit<RegisterState> {
     required String name,
     required String employeeId,
     required String department,
+    String phone = '',
+    String email = '',
     required Map<String, List<String>> faceImagePaths,
   }) async {
     try {
@@ -76,6 +78,8 @@ class RegisterCubit extends Cubit<RegisterState> {
           name: name,
           employeeId: employeeId,
           department: department,
+          phone: phone.isNotEmpty ? phone : null,
+          email: email.isNotEmpty ? email : null,
           faceImagePaths: faceImagePaths,
           embeddings: embeddings,
           registeredAt: DateTime.now(),
