@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../domain/entities/face_embedding.dart';
 import '../../domain/entities/person.dart';
 
 abstract class RegisterState extends Equatable {
@@ -9,6 +10,23 @@ abstract class RegisterState extends Equatable {
 
 class RegisterInitial extends RegisterState {
   const RegisterInitial();
+}
+
+class RegisterProcessingEmbeddings extends RegisterState {
+  final int current;
+  final int total;
+  final List<FaceEmbedding> embeddingsSoFar;
+
+  const RegisterProcessingEmbeddings({
+    required this.current,
+    required this.total,
+    this.embeddingsSoFar = const [],
+  });
+
+  double get progress => total > 0 ? current / total : 0.0;
+
+  @override
+  List<Object?> get props => [current, total, embeddingsSoFar];
 }
 
 class RegisterLoading extends RegisterState {
