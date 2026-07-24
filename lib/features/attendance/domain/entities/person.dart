@@ -9,6 +9,12 @@ class Person extends Equatable {
   final String name;
   final String employeeId;
   final String department;
+  final String? phone;
+  final String? email;
+  final String role;
+  final String? pinCode;
+  final bool isActive;
+  final int? shiftId;
 
   final Map<String, List<String>> faceImagePaths;
   final List<FaceEmbedding> embeddings;
@@ -22,6 +28,12 @@ class Person extends Equatable {
     required this.name,
     required this.employeeId,
     required this.department,
+    this.phone,
+    this.email,
+    this.role = 'employee',
+    this.pinCode,
+    this.isActive = true,
+    this.shiftId,
     this.faceImagePaths = const {},
     this.embeddings = const [],
     required this.registeredAt,
@@ -34,6 +46,12 @@ class Person extends Equatable {
     String? name,
     String? employeeId,
     String? department,
+    String? phone,
+    String? email,
+    String? role,
+    String? pinCode,
+    bool? isActive,
+    int? shiftId,
     Map<String, List<String>>? faceImagePaths,
     List<FaceEmbedding>? embeddings,
     DateTime? registeredAt,
@@ -45,6 +63,12 @@ class Person extends Equatable {
       name: name ?? this.name,
       employeeId: employeeId ?? this.employeeId,
       department: department ?? this.department,
+      phone: phone ?? this.phone,
+      email: email ?? this.email,
+      role: role ?? this.role,
+      pinCode: pinCode ?? this.pinCode,
+      isActive: isActive ?? this.isActive,
+      shiftId: shiftId ?? this.shiftId,
       faceImagePaths: faceImagePaths ?? this.faceImagePaths,
       embeddings: embeddings ?? this.embeddings,
       registeredAt: registeredAt ?? this.registeredAt,
@@ -59,6 +83,12 @@ class Person extends Equatable {
         name,
         employeeId,
         department,
+        phone,
+        email,
+        role,
+        pinCode,
+        isActive,
+        shiftId,
         faceImagePaths,
         embeddings,
         registeredAt,
