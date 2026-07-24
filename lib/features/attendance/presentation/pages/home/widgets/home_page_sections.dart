@@ -1,401 +1,539 @@
-import 'dart:math' as math;
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
 
+import '../../../../../../core/theme/app_theme.dart';
 import '../../../../../../core/theme/theme_cubit.dart';
-import '../../../cubit/home_stats_cubit.dart';
-import '../../../cubit/home_stats_state.dart';
 
-class HomeBackground extends StatelessWidget {
-  final Animation<double> animation;
-  final Color scaffoldColor;
+class HomeTopBar extends StatelessWidget {
+  final VoidCallback onSettings;
 
-  const HomeBackground({
-    super.key,
-    required this.animation,
-    required this.scaffoldColor,
-  });
+  const HomeTopBar({super.key, required this.onSettings});
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: animation,
-      builder: (_, __) {
-        final t = animation.value;
-        return Stack(
-          children: [
-            Positioned(
-              top: -80,
-              right: -80,
-              child: Container(
-                width: 320,
-                height: 320,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      const Color(0xFFCA8A04).withValues(
-                        alpha: 0.12 + 0.05 * math.sin(t * 2 * math.pi),
-                      ),
-                      Colors.transparent,
-                    ],
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final mutedColor = theme.colorScheme.onSurface.withValues(alpha: 0.62);
+    final showDate = MediaQuery.sizeOf(context).width >= 380;
+
+    return Container(
+      constraints: const BoxConstraints(minHeight: 64),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark ? AppTheme.homeDarkSurface : const Color(0xFFFBFAFA),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.16)
+                : AppTheme.homeLightText.withValues(alpha: 0.08),
+            blurRadius: 28,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'BAYN',
+                  style: GoogleFonts.atkinsonHyperlegible(
+                    color: theme.colorScheme.onSurface,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.35,
                   ),
                 ),
-              ),
-            ),
-            Positioned(
-              bottom: -100,
-              left: -60,
-              child: Container(
-                width: 280,
-                height: 280,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      const Color(0xFF00E5FF).withValues(
-                        alpha: 0.07 + 0.03 * math.cos(t * 2 * math.pi),
-                      ),
-                      Colors.transparent,
-                    ],
+                Text(
+                  'ATTENDANCE',
+                  style: GoogleFonts.readexPro(
+                    color: mutedColor,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 1.2,
                   ),
                 ),
-              ),
+              ],
             ),
-            Positioned.fill(child: CustomPaint(painter: _GridPainter())),
+          ),
+          if (showDate) ...[
+            _DateBadge(mutedColor: mutedColor),
+            const SizedBox(width: 4),
           ],
-        );
-      },
+          _HeaderActionButton(
+            tooltip: isDark ? 'Switch to light mode' : 'Switch to dark mode',
+            icon: isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+            onPressed: context.read<ThemeCubit>().toggleTheme,
+          ),
+          _HeaderActionButton(
+            tooltip: 'Open settings',
+            icon: Icons.settings_outlined,
+            onPressed: onSettings,
+          ),
+        ],
+      ),
     );
   }
 }
 
-class HomeTopBar extends StatelessWidget {
-  final Animation<double> pulseAnimation;
-  final VoidCallback onSettings;
+class _DateBadge extends StatelessWidget {
+  final Color mutedColor;
 
-  const HomeTopBar({
-    super.key,
-    required this.pulseAnimation,
-    required this.onSettings,
+  const _DateBadge({required this.mutedColor});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.calendar_today_outlined, size: 14, color: AppTheme.homeGold),
+          const SizedBox(width: 6),
+          Text(
+            _formattedDate(DateTime.now()),
+            style: GoogleFonts.readexPro(
+              color: mutedColor,
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeaderActionButton extends StatelessWidget {
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  const _HeaderActionButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final titleColor = isDark ? Colors.white : const Color(0xFF1F1A14);
-    final mutedColor = isDark
-        ? Colors.white.withValues(alpha: 0.3)
-        : const Color(0xFF1F1A14).withValues(alpha: 0.55);
-
-    return Row(
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AnimatedBuilder(
-              animation: pulseAnimation,
-              builder: (_, __) => Text(
-                'BAYN',
-                style: TextStyle(
-                  color: Color.lerp(
-                    const Color(0xFFCA8A04),
-                    const Color(0xFFFFD700),
-                    pulseAnimation.value,
-                  ),
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 5,
-                ),
-              ),
-            ),
-            Text(
-              'Attendance System',
-              style: TextStyle(
-                color: mutedColor,
-                fontSize: 11,
-                letterSpacing: 1.2,
-              ),
-            ),
-          ],
+    final theme = Theme.of(context);
+    return Tooltip(
+      message: tooltip,
+      child: IconButton(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 20),
+        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+        constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+        padding: EdgeInsets.zero,
+        style: IconButton.styleFrom(
+          backgroundColor: theme.colorScheme.surfaceContainerHighest,
+          shape: const CircleBorder(),
         ),
-        const Spacer(),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.04)
-                : Colors.black.withValues(alpha: 0.04),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.black.withValues(alpha: 0.06),
-            ),
-          ),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.calendar_today_rounded,
-                color: Color(0xFFCA8A04),
-                size: 13,
-              ),
-              const SizedBox(width: 7),
-              Text(
-                _formattedDate(),
-                style: TextStyle(
-                  color: mutedColor,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  letterSpacing: 0.3,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        IconButton(
-          onPressed: () => context.read<ThemeCubit>().toggleTheme(),
-          icon: Icon(
-            isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-            color: titleColor.withValues(alpha: 0.75),
-            size: 20,
-          ),
-          visualDensity: VisualDensity.compact,
-          style: IconButton.styleFrom(
-            backgroundColor: isDark
-                ? Colors.white.withValues(alpha: 0.05)
-                : Colors.black.withValues(alpha: 0.04),
-          ),
-        ),
-        const SizedBox(width: 2),
-        IconButton(
-          onPressed: onSettings,
-          icon: Icon(
-            Icons.settings_rounded,
-            color: titleColor.withValues(alpha: 0.75),
-            size: 20,
-          ),
-          visualDensity: VisualDensity.compact,
-          style: IconButton.styleFrom(
-            backgroundColor: isDark
-                ? Colors.white.withValues(alpha: 0.05)
-                : Colors.black.withValues(alpha: 0.04),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
 
 class HomeHeroSection extends StatelessWidget {
-  final Animation<double> pulseAnimation;
+  final VoidCallback onTap;
 
-  const HomeHeroSection({super.key, required this.pulseAnimation});
+  const HomeHeroSection({super.key, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final titleColor = isDark ? Colors.white : const Color(0xFF1F1A14);
-    final bodyColor = isDark
-        ? Colors.white.withValues(alpha: 0.4)
-        : const Color(0xFF1F1A14).withValues(alpha: 0.68);
+    final theme = Theme.of(context);
+    final mutedColor = theme.colorScheme.onSurface.withValues(alpha: 0.62);
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-          decoration: BoxDecoration(
-            color: const Color(0xFF00E5FF).withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: const Color(0xFF00E5FF).withValues(alpha: 0.2),
+        Text(
+          'GOOD MORNING',
+          style: GoogleFonts.readexPro(
+            color: mutedColor,
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            letterSpacing: 1.8,
+          ),
+        ),
+        const SizedBox(height: 10),
+        const _LiveClock(),
+        const SizedBox(height: 18),
+        const _StatusPill(),
+        const SizedBox(height: 18),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 260),
+          child: Text(
+            'When you’re ready, look at the camera to record today’s attendance.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.readexPro(
+              color: mutedColor,
+              fontSize: 13,
+              height: 1.55,
             ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+        ),
+        const SizedBox(height: 28),
+        const HomeProgressCard(),
+        const SizedBox(height: 32),
+        HomeScanAction(onTap: onTap),
+      ],
+    );
+  }
+}
+
+class _LiveClock extends StatefulWidget {
+  const _LiveClock();
+
+  @override
+  State<_LiveClock> createState() => _LiveClockState();
+}
+
+class _LiveClockState extends State<_LiveClock> {
+  late DateTime _now;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _now = DateTime.now();
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(() => _now = DateTime.now());
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 180),
+      child: Text(
+        _formattedTime(_now),
+        key: ValueKey('${_now.hour}:${_now.minute}'),
+        style: GoogleFonts.atkinsonHyperlegible(
+          color: Theme.of(context).colorScheme.onSurface,
+          fontSize: 76,
+          fontWeight: FontWeight.w700,
+          height: 0.86,
+          letterSpacing: -5.4,
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusPill extends StatelessWidget {
+  const _StatusPill();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F8F5),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFB6DAD5)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: const BoxDecoration(
+              color: AppTheme.homeStatusGreen,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'On time for check-in',
+            style: GoogleFonts.readexPro(
+              color: const Color(0xFF276C5B),
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class HomeProgressCard extends StatelessWidget {
+  const HomeProgressCard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final mutedColor = theme.colorScheme.onSurface.withValues(alpha: 0.62);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AnimatedBuilder(
-                animation: pulseAnimation,
-                builder: (_, __) => Opacity(
-                  opacity: pulseAnimation.value,
-                  child: Container(
-                    width: 6,
-                    height: 6,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Color(0xFF00E5FF),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Today’s progress',
+                      style: GoogleFonts.atkinsonHyperlegible(
+                        color: theme.colorScheme.onSurface,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Your attendance timeline',
+                      style: GoogleFonts.readexPro(
+                        color: mutedColor,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 8),
-              const Text(
-                'SYSTEM READY',
-                style: TextStyle(
-                  color: Color(0xFF00E5FF),
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 2,
+              const Icon(Icons.schedule_outlined, size: 18, color: AppTheme.homeGold),
+            ],
+          ),
+          const SizedBox(height: 20),
+          const _ProgressTimeline(),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProgressTimeline extends StatelessWidget {
+  const _ProgressTimeline();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final lineColor = theme.colorScheme.onSurface.withValues(alpha: 0.18);
+
+    return SizedBox(
+      height: 76,
+      child: Stack(
+        children: [
+          Positioned(
+            top: 11,
+            left: 12,
+            right: 12,
+            child: Container(height: 1, color: lineColor),
+          ),
+          const Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _ProgressStep(
+                  label: 'Check-in',
+                  status: 'Pending',
+                  alignment: CrossAxisAlignment.start,
+                  accent: AppTheme.homeGold,
+                  active: true,
+                ),
+              ),
+              Expanded(
+                child: _ProgressStep(
+                  label: 'Lunch',
+                  status: 'Upcoming',
+                  alignment: CrossAxisAlignment.center,
+                  accent: Color(0xFF9C9992),
+                ),
+              ),
+              Expanded(
+                child: _ProgressStep(
+                  label: 'Check-out',
+                  status: 'Upcoming',
+                  alignment: CrossAxisAlignment.end,
+                  accent: Color(0xFF9C9992),
                 ),
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 20),
-        Text(
-          'Mark your\nattendance',
-          style: TextStyle(
-            color: titleColor,
-            fontSize: 42,
-            fontWeight: FontWeight.w800,
-            height: 1.15,
-            letterSpacing: -1.0,
+        ],
+      ),
+    );
+  }
+}
+
+class _ProgressStep extends StatelessWidget {
+  final String label;
+  final String status;
+  final CrossAxisAlignment alignment;
+  final Color accent;
+  final bool active;
+
+  const _ProgressStep({
+    required this.label,
+    required this.status,
+    required this.alignment,
+    required this.accent,
+    this.active = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textColor = theme.colorScheme.onSurface.withValues(alpha: active ? 0.9 : 0.68);
+    final statusColor = theme.colorScheme.onSurface.withValues(alpha: active ? 0.62 : 0.4);
+
+    return Column(
+      crossAxisAlignment: alignment,
+      children: [
+        Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest,
+            shape: BoxShape.circle,
+            border: Border.all(color: accent, width: active ? 2 : 1),
+          ),
+          child: Icon(
+            active ? Icons.radio_button_unchecked : Icons.more_horiz,
+            size: active ? 13 : 12,
+            color: accent,
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 7),
         Text(
-          'Look into the camera and we\'ll handle the rest.\nFace recognition takes just a few seconds.',
-          style: TextStyle(color: bodyColor, fontSize: 15, height: 1.6),
+          label,
+          style: GoogleFonts.atkinsonHyperlegible(
+            color: textColor,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 1),
+        Text(
+          status,
+          style: GoogleFonts.readexPro(
+            color: statusColor,
+            fontSize: 10,
+          ),
         ),
       ],
     );
   }
 }
 
-class HomeStatsRow extends StatelessWidget {
-  const HomeStatsRow({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<HomeStatsCubit, HomeStatsState>(
-      builder: (context, state) {
-        String total = '-';
-        String accuracy = '-';
-        String speed = '-';
-
-        if (state is HomeStatsLoaded) {
-          total = state.stats.totalCheckedIn.toString();
-          accuracy = state.stats.accuracyLabel;
-          speed = state.stats.scanTimeLabel;
-        }
-
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        final cardColor = isDark
-            ? Colors.white.withValues(alpha: 0.03)
-            : Colors.white.withValues(alpha: 0.82);
-        final borderColor = isDark
-            ? Colors.white.withValues(alpha: 0.07)
-            : const Color(0xFFE5D8C5);
-
-        return Row(
-          children: [
-            _StatCard(
-              label: 'Today',
-              value: total,
-              subtitle: 'checked in',
-              color: const Color(0xFF00E676),
-              cardColor: cardColor,
-              borderColor: borderColor,
-            ),
-            const SizedBox(width: 12),
-            _StatCard(
-              label: 'Accuracy',
-              value: accuracy,
-              subtitle: 'recognition',
-              color: const Color(0xFF00E5FF),
-              cardColor: cardColor,
-              borderColor: borderColor,
-            ),
-            const SizedBox(width: 12),
-            _StatCard(
-              label: 'Speed',
-              value: speed,
-              subtitle: 'avg scan time',
-              color: const Color(0xFFCA8A04),
-              cardColor: cardColor,
-              borderColor: borderColor,
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class HomeScanButton extends StatelessWidget {
-  final Animation<double> pulseAnimation;
+class HomeScanAction extends StatefulWidget {
   final VoidCallback onTap;
 
-  const HomeScanButton({
-    super.key,
-    required this.pulseAnimation,
-    required this.onTap,
-  });
+  const HomeScanAction({super.key, required this.onTap});
+
+  @override
+  State<HomeScanAction> createState() => _HomeScanActionState();
+}
+
+class _HomeScanActionState extends State<HomeScanAction> {
+  bool _isPressed = false;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedBuilder(
-        animation: pulseAnimation,
-        builder: (_, __) {
-          return Container(
-            width: double.infinity,
-            height: 64,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              gradient: const LinearGradient(
-                colors: [Color(0xFFCA8A04), Color(0xFFD97706)],
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(
-                    0xFFCA8A04,
-                  ).withValues(alpha: 0.3 + 0.15 * pulseAnimation.value),
-                  blurRadius: 24 + 8 * pulseAnimation.value,
-                  offset: const Offset(0, 6),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 38,
-                  height: 38,
+    final theme = Theme.of(context);
+    final mutedColor = theme.colorScheme.onSurface.withValues(alpha: 0.62);
+
+    return Semantics(
+      button: true,
+      label: 'Begin face scan',
+      hint: 'Opens the attendance camera',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: widget.onTap,
+              onHighlightChanged: (isHighlighted) {
+                if (mounted) setState(() => _isPressed = isHighlighted);
+              },
+              borderRadius: BorderRadius.circular(72),
+              child: AnimatedScale(
+                scale: _isPressed ? 0.96 : 1,
+                duration: const Duration(milliseconds: 130),
+                curve: Curves.easeOut,
+                child: Container(
+                  width: 116,
+                  height: 116,
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.15),
+                    color: AppTheme.homeGold,
                     shape: BoxShape.circle,
+                    border: Border.all(
+                      color: theme.brightness == Brightness.dark
+                          ? const Color(0xFF6B531D)
+                          : const Color(0xFFF3E5C4),
+                      width: 8,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.homeGold.withValues(alpha: 0.2),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
                   ),
-                  child: const Icon(
-                    Icons.face_retouching_natural_rounded,
-                    color: Color(0xFF1C1917),
-                    size: 22,
+                  child: Icon(
+                    Icons.face_retouching_natural_outlined,
+                    size: 46,
+                    color: theme.brightness == Brightness.dark
+                        ? AppTheme.homeDarkText
+                        : AppTheme.homeLightText,
                   ),
                 ),
-                const SizedBox(width: 14),
-                const Text(
-                  'Start Face Scan',
-                  style: TextStyle(
-                    color: Color(0xFF1C1917),
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.2,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Icon(
-                  Icons.arrow_forward_rounded,
-                  color: Color(0xFF1C1917),
-                  size: 20,
-                ),
-              ],
+              ),
             ),
-          );
-        },
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'Begin face scan',
+            style: GoogleFonts.atkinsonHyperlegible(
+              color: theme.colorScheme.onSurface,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Takes only a few seconds',
+            style: GoogleFonts.readexPro(
+              color: mutedColor,
+              fontSize: 11,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -406,127 +544,40 @@ class HomeBottomNote extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Center(
-      child: Text(
-        'Your biometric data is processed on-device and never stored.',
-        style: TextStyle(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.2)
-              : const Color(0xFF1F1A14).withValues(alpha: 0.45),
-          fontSize: 12,
-          height: 1.5,
-        ),
-        textAlign: TextAlign.center,
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.only(top: 16),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.verified_user_outlined, size: 17, color: AppTheme.homeStatusGreen),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              'Processed on-device. Never stored.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.readexPro(
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.62),
+                fontSize: 11,
+                height: 1.45,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _StatCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final String subtitle;
-  final Color color;
-  final Color cardColor;
-  final Color borderColor;
-
-  const _StatCard({
-    required this.label,
-    required this.value,
-    required this.subtitle,
-    required this.color,
-    required this.cardColor,
-    required this.borderColor,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: cardColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: borderColor),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white.withValues(alpha: 0.35)
-                    : const Color(0xFF1F1A14).withValues(alpha: 0.45),
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1.2,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              value,
-              style: TextStyle(
-                color: color,
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.5,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: TextStyle(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white.withValues(alpha: 0.25)
-                    : const Color(0xFF1F1A14).withValues(alpha: 0.38),
-                fontSize: 10,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+String _formattedDate(DateTime date) {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return 'Today · ${date.day} ${months[date.month - 1]}';
 }
 
-class _GridPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFF00E5FF).withValues(alpha: 0.025)
-      ..strokeWidth = 0.5;
-
-    const step = 40.0;
-    for (double x = 0; x < size.width; x += step) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (double y = 0; y < size.height; y += step) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_GridPainter old) => false;
-}
-
-String _formattedDate() {
-  final now = DateTime.now();
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  return '${days[now.weekday - 1]}, ${months[now.month - 1]} ${now.day}';
+String _formattedTime(DateTime time) {
+  return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
 }
