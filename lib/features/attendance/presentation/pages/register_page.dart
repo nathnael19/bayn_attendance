@@ -23,6 +23,8 @@ class _RegisterPageState extends State<RegisterPage>
   final _nameController = TextEditingController();
   final _idController = TextEditingController();
   final _departmentController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
 
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
@@ -48,6 +50,8 @@ class _RegisterPageState extends State<RegisterPage>
     _nameController.dispose();
     _idController.dispose();
     _departmentController.dispose();
+    _phoneController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
@@ -64,6 +68,8 @@ class _RegisterPageState extends State<RegisterPage>
       name: _nameController.text.trim(),
       employeeId: _idController.text.trim(),
       department: _departmentController.text.trim(),
+      phone: _phoneController.text.trim(),
+      email: _emailController.text.trim(),
       faceImagePaths: stringKeyed,
     );
   }
@@ -73,6 +79,8 @@ class _RegisterPageState extends State<RegisterPage>
     _nameController.clear();
     _idController.clear();
     _departmentController.clear();
+    _phoneController.clear();
+    _emailController.clear();
     setState(() => _step = 0);
   }
 
@@ -148,6 +156,8 @@ class _RegisterPageState extends State<RegisterPage>
                         nameController: _nameController,
                         idController: _idController,
                         departmentController: _departmentController,
+                        phoneController: _phoneController,
+                        emailController: _emailController,
                         fadeAnim: _fadeAnim,
                         slideAnim: _slideAnim,
                         onNext: _goToCapture,

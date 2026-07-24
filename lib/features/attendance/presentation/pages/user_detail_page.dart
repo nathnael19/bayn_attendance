@@ -246,6 +246,34 @@ class _InfoCard extends StatelessWidget {
             isDark: isDark,
           ),
           _InfoRow(
+            label: 'Role',
+            value: person.role[0].toUpperCase() + person.role.substring(1),
+            isDark: isDark,
+          ),
+          if (person.phone != null)
+            _InfoRow(
+              label: 'Phone',
+              value: person.phone!,
+              isDark: isDark,
+            ),
+          if (person.email != null)
+            _InfoRow(
+              label: 'Email',
+              value: person.email!,
+              isDark: isDark,
+            ),
+          _InfoRow(
+            label: 'Status',
+            value: person.isActive ? 'Active' : 'Inactive',
+            isDark: isDark,
+          ),
+          if (person.shiftId != null)
+            _InfoRow(
+              label: 'Shift',
+              value: 'Shift #${person.shiftId}',
+              isDark: isDark,
+            ),
+          _InfoRow(
             label: 'Registered',
             value: _formatDate(person.registeredAt),
             isDark: isDark,
