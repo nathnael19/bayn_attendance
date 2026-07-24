@@ -4,16 +4,15 @@ import 'package:equatable/equatable.dart';
 class AttendanceRecord extends Equatable {
   final int? localId;
   final String? serverId;
-
-  /// Links to the registered person (local or server ID).
   final String? personId;
   final String personName;
   final String department;
-
-  /// Recognition confidence score (0.0 – 1.0).
   final double confidence;
-
   final DateTime checkedInAt;
+  final DateTime? checkedOutAt;
+  final String status;
+  final int? shiftId;
+  final String? location;
   final bool isSynced;
 
   const AttendanceRecord({
@@ -24,6 +23,10 @@ class AttendanceRecord extends Equatable {
     required this.department,
     required this.confidence,
     required this.checkedInAt,
+    this.checkedOutAt,
+    this.status = 'present',
+    this.shiftId,
+    this.location,
     this.isSynced = false,
   });
 
@@ -35,6 +38,10 @@ class AttendanceRecord extends Equatable {
     String? department,
     double? confidence,
     DateTime? checkedInAt,
+    DateTime? checkedOutAt,
+    String? status,
+    int? shiftId,
+    String? location,
     bool? isSynced,
   }) {
     return AttendanceRecord(
@@ -45,6 +52,10 @@ class AttendanceRecord extends Equatable {
       department: department ?? this.department,
       confidence: confidence ?? this.confidence,
       checkedInAt: checkedInAt ?? this.checkedInAt,
+      checkedOutAt: checkedOutAt ?? this.checkedOutAt,
+      status: status ?? this.status,
+      shiftId: shiftId ?? this.shiftId,
+      location: location ?? this.location,
       isSynced: isSynced ?? this.isSynced,
     );
   }
@@ -58,6 +69,10 @@ class AttendanceRecord extends Equatable {
         department,
         confidence,
         checkedInAt,
+        checkedOutAt,
+        status,
+        shiftId,
+        location,
         isSynced,
       ];
 }

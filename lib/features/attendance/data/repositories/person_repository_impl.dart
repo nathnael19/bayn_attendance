@@ -141,4 +141,11 @@ class PersonRepositoryImpl implements PersonRepository {
       embeddingsSynced: embeddingCount,
     );
   }
+
+  @override
+  Future<void> deletePerson(String employeeId) async {
+    await embeddingLocal.deleteEmbeddingsByPerson(employeeId);
+    await local.deletePersonByEmployeeId(employeeId);
+    await faceRecognition.reloadEmbeddings();
+  }
 }
