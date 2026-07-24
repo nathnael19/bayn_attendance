@@ -87,5 +87,5 @@ Future<void> init() async {
     ),
   );
   sl.registerFactory(() => HomeStatsCubit(getTodayStats: sl()));
-  sl.registerFactory(() => UsersCubit(getAllPersons: sl()));
+  sl.registerFactory(() => UsersCubit(repository: sl()));
 }
