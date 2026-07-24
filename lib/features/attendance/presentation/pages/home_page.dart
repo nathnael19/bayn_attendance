@@ -20,14 +20,7 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
-  late AnimationController _bgController;
-  late AnimationController _pulseController;
-  late AnimationController _entryController;
-
-  late Animation<double> _entryFade;
-  late Animation<Offset> _entrySlide;
-
+class _HomePageState extends State<HomePage> {
   CameraController? _cameraController;
   List<CameraDescription>? _cameras;
   late final FaceDetector _faceDetector;
@@ -37,31 +30,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-
-    _bgController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 10),
-    )..repeat();
-
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2000),
-    )..repeat(reverse: true);
-
-    _entryController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 900),
-    )..forward();
-
-    _entryFade = CurvedAnimation(
-      parent: _entryController,
-      curve: Curves.easeOut,
-    );
-    _entrySlide = Tween<Offset>(
-      begin: const Offset(0, 0.06),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _entryController, curve: Curves.easeOut));
-
     _faceDetector = FaceDetector(
       options: FaceDetectorOptions(
         performanceMode: FaceDetectorMode.fast,
@@ -75,10 +43,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   @override
   void dispose() {
-    _bgController.dispose();
-    _pulseController.dispose();
-    _entryController.dispose();
-
     _cameraController
         ?.stopImageStream()
         .then((_) {
@@ -119,7 +83,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Future<void> _processFrame(CameraImage image) async {
-    if (_isDetecting || _isNavigating) return;
+    if (_isDetecting || _isNavigating || _cameras == null) return;
     _isDetecting = true;
     try {
       final camera = CameraVisionUtils.selectFrontCamera(_cameras!);
@@ -185,53 +149,25 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final scaffoldColor = isDark
-        ? const Color(0xFF07070C)
-        : const Color(0xFFF7F2E8);
-
     return Scaffold(
-      backgroundColor: scaffoldColor,
-      body: Stack(
-        children: [
-          HomeBackground(
-            animation: _bgController,
-            scaffoldColor: scaffoldColor,
-          ),
-          SafeArea(
-            child: FadeTransition(
-              opacity: _entryFade,
-              child: SlideTransition(
-                position: _entrySlide,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 28),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 32),
-                      HomeTopBar(
-                        pulseAnimation: _pulseController,
-                        onSettings: _openSettings,
-                      ),
-                      const SizedBox(height: 48),
-                      HomeHeroSection(pulseAnimation: _pulseController),
-                      const SizedBox(height: 40),
-                      const HomeStatsRow(),
-                      const Spacer(),
-                      HomeScanButton(
-                        pulseAnimation: _pulseController,
-                        onTap: _goToAttendance,
-                      ),
-                      const SizedBox(height: 20),
-                      const HomeBottomNote(),
-                      const SizedBox(height: 32),
-                    ],
-                  ),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+          child: Column(
+            children: [
+              HomeTopBar(onSettings: _openSettings),
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.only(top: 58, bottom: 32),
+                  child: HomeHeroSection(onTap: _goToAttendance),
                 ),
               ),
-            ),
+              const HomeBottomNote(),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
