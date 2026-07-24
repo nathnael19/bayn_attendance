@@ -1,19 +1,20 @@
 import 'package:equatable/equatable.dart';
 
+import 'face_embedding.dart';
+
 /// Core domain model for a registered person.
 class Person extends Equatable {
-  final int? localId;       // SQLite row id (null before first save)
-  final String? serverId;   // ID returned by the backend (null until synced)
+  final int? localId;
+  final String? serverId;
   final String name;
   final String employeeId;
   final String department;
 
-  /// Map of angle label → list of absolute image file paths stored locally.
-  /// e.g. { 'front': ['/data/.../front_0.jpg', ...], 'left': [...] }
   final Map<String, List<String>> faceImagePaths;
+  final List<FaceEmbedding> embeddings;
 
   final DateTime registeredAt;
-  final bool isSynced; // true once successfully pushed to backend
+  final bool isSynced;
 
   const Person({
     this.localId,
@@ -21,7 +22,8 @@ class Person extends Equatable {
     required this.name,
     required this.employeeId,
     required this.department,
-    required this.faceImagePaths,
+    this.faceImagePaths = const {},
+    this.embeddings = const [],
     required this.registeredAt,
     this.isSynced = false,
   });
@@ -33,6 +35,7 @@ class Person extends Equatable {
     String? employeeId,
     String? department,
     Map<String, List<String>>? faceImagePaths,
+    List<FaceEmbedding>? embeddings,
     DateTime? registeredAt,
     bool? isSynced,
   }) {
@@ -43,6 +46,7 @@ class Person extends Equatable {
       employeeId: employeeId ?? this.employeeId,
       department: department ?? this.department,
       faceImagePaths: faceImagePaths ?? this.faceImagePaths,
+      embeddings: embeddings ?? this.embeddings,
       registeredAt: registeredAt ?? this.registeredAt,
       isSynced: isSynced ?? this.isSynced,
     );
@@ -56,6 +60,7 @@ class Person extends Equatable {
         employeeId,
         department,
         faceImagePaths,
+        embeddings,
         registeredAt,
         isSynced,
       ];

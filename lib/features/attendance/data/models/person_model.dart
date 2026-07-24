@@ -1,9 +1,7 @@
 import 'dart:convert';
+
 import '../../domain/entities/person.dart';
 
-/// Data-layer representation of [Person].
-/// Adds SQLite serialization (fromMap / toMap) and
-/// JSON serialization (fromJson / toJson) for the backend API.
 class PersonModel extends Person {
   const PersonModel({
     super.localId,
@@ -11,12 +9,11 @@ class PersonModel extends Person {
     required super.name,
     required super.employeeId,
     required super.department,
-    required super.faceImagePaths,
+    super.faceImagePaths,
+    super.embeddings,
     required super.registeredAt,
     super.isSynced,
   });
-
-  // ── SQLite ────────────────────────────────────────────────
 
   factory PersonModel.fromMap(Map<String, dynamic> map) {
     Map<String, List<String>> faceImagePaths = {};
@@ -25,7 +22,8 @@ class PersonModel extends Person {
       final decoded = jsonDecode(raw);
       if (decoded is Map<String, dynamic>) {
         faceImagePaths = decoded.map(
-          (k, v) => MapEntry(k, v is List ? List<String>.from(v.whereType<String>()) : <String>[]),
+          (k, v) => MapEntry(
+              k, v is List ? List<String>.from(v.whereType<String>()) : <String>[]),
         );
       }
     } catch (_) {
@@ -39,7 +37,8 @@ class PersonModel extends Person {
       employeeId: (map['employee_id'] as String?) ?? '',
       department: (map['department'] as String?) ?? '',
       faceImagePaths: faceImagePaths,
-      registeredAt: DateTime.tryParse(map['registered_at'] as String? ?? '') ?? DateTime.now(),
+      registeredAt:
+          DateTime.tryParse(map['registered_at'] as String? ?? '') ?? DateTime.now(),
       isSynced: (map['is_synced'] as int? ?? 0) == 1,
     );
   }
@@ -57,10 +56,6 @@ class PersonModel extends Person {
     };
   }
 
-  // ── REST API JSON ─────────────────────────────────────────
-
-  /// Build the JSON body sent to the backend on registration.
-  /// Image bytes / multipart is handled separately in the datasource.
   Map<String, dynamic> toJson() {
     return {
       'name': name,
@@ -70,11 +65,10 @@ class PersonModel extends Person {
     };
   }
 
-  /// Parse the backend response after a successful registration.
   factory PersonModel.fromJson(Map<String, dynamic> json, Person local) {
     return PersonModel(
       localId: local.localId,
-      serverId: json['id']?.toString(),   // adjust key to match your API
+      serverId: json['id']?.toString(),
       name: local.name,
       employeeId: local.employeeId,
       department: local.department,
@@ -84,8 +78,6 @@ class PersonModel extends Person {
     );
   }
 
-  // ── Helpers ───────────────────────────────────────────────
-
   factory PersonModel.fromEntity(Person p) {
     return PersonModel(
       localId: p.localId,
@@ -94,6 +86,7 @@ class PersonModel extends Person {
       employeeId: p.employeeId,
       department: p.department,
       faceImagePaths: p.faceImagePaths,
+      embeddings: p.embeddings,
       registeredAt: p.registeredAt,
       isSynced: p.isSynced,
     );
