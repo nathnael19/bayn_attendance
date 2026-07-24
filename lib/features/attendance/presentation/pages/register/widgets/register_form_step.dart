@@ -5,6 +5,8 @@ class RegisterFormStep extends StatelessWidget {
   final TextEditingController nameController;
   final TextEditingController idController;
   final TextEditingController departmentController;
+  final TextEditingController phoneController;
+  final TextEditingController emailController;
   final Animation<double> fadeAnim;
   final Animation<Offset> slideAnim;
   final VoidCallback onNext;
@@ -15,6 +17,8 @@ class RegisterFormStep extends StatelessWidget {
     required this.nameController,
     required this.idController,
     required this.departmentController,
+    required this.phoneController,
+    required this.emailController,
     required this.fadeAnim,
     required this.slideAnim,
     required this.onNext,
@@ -101,6 +105,26 @@ class RegisterFormStep extends StatelessWidget {
                         validator: (v) => (v == null || v.trim().isEmpty)
                             ? 'Please enter a department'
                             : null,
+                      ),
+                      const SizedBox(height: 20),
+                      _SectionLabel(text: 'Phone (optional)', isDark: isDark),
+                      const SizedBox(height: 8),
+                      _FormField(
+                        controller: phoneController,
+                        hint: 'e.g. +251-911-000-000',
+                        icon: Icons.phone_outlined,
+                        isDark: isDark,
+                        keyboardType: TextInputType.phone,
+                      ),
+                      const SizedBox(height: 20),
+                      _SectionLabel(text: 'Email (optional)', isDark: isDark),
+                      const SizedBox(height: 8),
+                      _FormField(
+                        controller: emailController,
+                        hint: 'e.g. abebe@company.com',
+                        icon: Icons.email_outlined,
+                        isDark: isDark,
+                        keyboardType: TextInputType.emailAddress,
                       ),
                       const SizedBox(height: 32),
                       GestureDetector(
@@ -199,6 +223,7 @@ class _FormField extends StatelessWidget {
   final IconData icon;
   final bool isDark;
   final String? Function(String?)? validator;
+  final TextInputType? keyboardType;
 
   const _FormField({
     required this.controller,
@@ -206,6 +231,7 @@ class _FormField extends StatelessWidget {
     required this.icon,
     required this.isDark,
     this.validator,
+    this.keyboardType,
   });
 
   @override
@@ -213,6 +239,7 @@ class _FormField extends StatelessWidget {
     return TextFormField(
       controller: controller,
       validator: validator,
+      keyboardType: keyboardType,
       style: TextStyle(
         color: isDark ? Colors.white : const Color(0xFF1F1A14),
         fontSize: 14,
