@@ -118,7 +118,8 @@ class _RegisterPageState extends State<RegisterPage>
           }
         },
         builder: (context, state) {
-          final isLoading = state is RegisterLoading;
+          final showOverlay =
+              state is RegisterProcessingEmbeddings || state is RegisterLoading;
 
           return Stack(
             children: [
@@ -163,35 +164,103 @@ class _RegisterPageState extends State<RegisterPage>
                         onRegisterAnother: _reset,
                       ),
               ),
-              if (isLoading)
+              if (showOverlay)
                 Positioned.fill(
                   child: Container(
                     color: Colors.black.withValues(alpha: 0.55),
-                    child: const Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          CircularProgressIndicator(
-                            color: Color(0xFFCA8A04),
-                            strokeWidth: 2.5,
-                          ),
-                          SizedBox(height: 18),
-                          Text(
-                            'Saving…',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
+                    child: Center(
+                      child: state is RegisterProcessingEmbeddings
+                          ? _ProcessingProgress(
+                              current: state.current,
+                              total: state.total,
+                              progress: state.progress,
+                            )
+                          : const Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                CircularProgressIndicator(
+                                  color: Color(0xFFCA8A04),
+                                  strokeWidth: 2.5,
+                                ),
+                                SizedBox(height: 18),
+                                Text(
+                                  'Saving…',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
-                      ),
                     ),
                   ),
                 ),
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _ProcessingProgress extends StatelessWidget {
+  final int current;
+  final int total;
+  final double progress;
+
+  const _ProcessingProgress({
+    required this.current,
+    required this.total,
+    required this.progress,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 48),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 48,
+            height: 48,
+            child: CircularProgressIndicator(
+              value: progress,
+              color: const Color(0xFFCA8A04),
+              strokeWidth: 3,
+              backgroundColor: Colors.white.withValues(alpha: 0.15),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Generating face embeddings…',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '$current of $total processed',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.65),
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 4,
+              backgroundColor: Colors.white.withValues(alpha: 0.12),
+              valueColor:
+                  const AlwaysStoppedAnimation<Color>(Color(0xFFCA8A04)),
+            ),
+          ),
+        ],
       ),
     );
   }

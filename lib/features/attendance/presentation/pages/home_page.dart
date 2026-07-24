@@ -82,10 +82,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _cameraController
         ?.stopImageStream()
         .then((_) {
-          _cameraController?.dispose();
+          try {
+            _cameraController?.dispose();
+          } catch (_) {}
         })
         .catchError((_) {
-          _cameraController?.dispose();
+          try {
+            _cameraController?.dispose();
+          } catch (_) {}
         });
     _faceDetector.close();
     super.dispose();
@@ -144,7 +148,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     try {
       await _cameraController?.stopImageStream();
     } catch (_) {}
-    await _cameraController?.dispose();
+    try {
+      await _cameraController?.dispose();
+    } catch (_) {}
     _cameraController = null;
 
     if (!mounted) return;
