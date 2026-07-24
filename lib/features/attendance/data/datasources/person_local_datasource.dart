@@ -15,6 +15,8 @@ abstract class PersonLocalDatasource {
     String personEmployeeId,
     Map<String, List<String>> tempPaths,
   );
+  Future<void> replaceAllPersons(List<PersonModel> persons);
+  Future<int> deleteAllPersons();
 }
 
 class PersonLocalDatasourceImpl implements PersonLocalDatasource {
@@ -98,5 +100,23 @@ class PersonLocalDatasourceImpl implements PersonLocalDatasource {
     }
 
     return permanent;
+  }
+
+  @override
+  Future<void> replaceAllPersons(List<PersonModel> persons) async {
+    final db = await _db;
+    await db.transaction((txn) async {
+      await txn.delete('persons');
+      for (final p in persons) {
+        await txn.insert('persons', p.toMap(),
+            conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+    });
+  }
+
+  @override
+  Future<int> deleteAllPersons() async {
+    final db = await _db;
+    return db.delete('persons');
   }
 }
