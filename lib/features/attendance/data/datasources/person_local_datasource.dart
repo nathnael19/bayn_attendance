@@ -17,6 +17,7 @@ abstract class PersonLocalDatasource {
   );
   Future<void> replaceAllPersons(List<PersonModel> persons);
   Future<int> deleteAllPersons();
+  Future<void> deletePersonByEmployeeId(String employeeId);
 }
 
 class PersonLocalDatasourceImpl implements PersonLocalDatasource {
@@ -36,6 +37,12 @@ class PersonLocalDatasourceImpl implements PersonLocalDatasource {
       name: person.name,
       employeeId: person.employeeId,
       department: person.department,
+      phone: person.phone,
+      email: person.email,
+      role: person.role,
+      pinCode: person.pinCode,
+      isActive: person.isActive,
+      shiftId: person.shiftId,
       faceImagePaths: person.faceImagePaths,
       registeredAt: person.registeredAt,
       isSynced: person.isSynced,
@@ -118,5 +125,17 @@ class PersonLocalDatasourceImpl implements PersonLocalDatasource {
   Future<int> deleteAllPersons() async {
     final db = await _db;
     return db.delete('persons');
+  }
+
+  @override
+  Future<void> deletePersonByEmployeeId(String employeeId) async {
+    final db = await _db;
+    await db.delete('persons', where: 'employee_id = ?', whereArgs: [employeeId]);
+    final personDir = Directory(
+      p.join((await getApplicationDocumentsDirectory()).path, 'bayn_faces', employeeId),
+    );
+    if (personDir.existsSync()) {
+      personDir.deleteSync(recursive: true);
+    }
   }
 }

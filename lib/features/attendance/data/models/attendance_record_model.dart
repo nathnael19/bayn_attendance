@@ -9,6 +9,10 @@ class AttendanceRecordModel extends AttendanceRecord {
     required super.department,
     required super.confidence,
     required super.checkedInAt,
+    super.checkedOutAt,
+    super.status,
+    super.shiftId,
+    super.location,
     super.isSynced,
   });
 
@@ -23,6 +27,12 @@ class AttendanceRecordModel extends AttendanceRecord {
       department: map['department'] as String? ?? '',
       confidence: (map['confidence'] as num?)?.toDouble() ?? 0.0,
       checkedInAt: DateTime.parse(map['checked_in_at'] as String),
+      checkedOutAt: map['checked_out_at'] != null
+          ? DateTime.tryParse(map['checked_out_at'] as String)
+          : null,
+      status: (map['status'] as String?) ?? 'present',
+      shiftId: map['shift_id'] as int?,
+      location: map['location'] as String?,
       isSynced: (map['is_synced'] as int? ?? 0) == 1,
     );
   }
@@ -36,6 +46,10 @@ class AttendanceRecordModel extends AttendanceRecord {
       'department': department,
       'confidence': confidence,
       'checked_in_at': checkedInAt.toIso8601String(),
+      'checked_out_at': checkedOutAt?.toIso8601String(),
+      'status': status,
+      'shift_id': shiftId,
+      'location': location,
       'is_synced': isSynced ? 1 : 0,
     };
   }
@@ -49,6 +63,10 @@ class AttendanceRecordModel extends AttendanceRecord {
       'department': department,
       'confidence': confidence,
       'checked_in_at': checkedInAt.toIso8601String(),
+      'checked_out_at': checkedOutAt?.toIso8601String(),
+      'status': status,
+      'shift_id': shiftId,
+      'location': location,
     };
   }
 
@@ -56,12 +74,16 @@ class AttendanceRecordModel extends AttendanceRecord {
       Map<String, dynamic> json, AttendanceRecord local) {
     return AttendanceRecordModel(
       localId: local.localId,
-      serverId: json['id']?.toString(), // TODO: match your API key
+      serverId: json['id']?.toString(),
       personId: local.personId,
       personName: local.personName,
       department: local.department,
       confidence: local.confidence,
       checkedInAt: local.checkedInAt,
+      checkedOutAt: local.checkedOutAt,
+      status: local.status,
+      shiftId: local.shiftId,
+      location: local.location,
       isSynced: true,
     );
   }
@@ -75,6 +97,10 @@ class AttendanceRecordModel extends AttendanceRecord {
       department: r.department,
       confidence: r.confidence,
       checkedInAt: r.checkedInAt,
+      checkedOutAt: r.checkedOutAt,
+      status: r.status,
+      shiftId: r.shiftId,
+      location: r.location,
       isSynced: r.isSynced,
     );
   }

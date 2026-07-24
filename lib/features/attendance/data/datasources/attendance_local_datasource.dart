@@ -29,6 +29,10 @@ class AttendanceLocalDatasourceImpl implements AttendanceLocalDatasource {
       department: record.department,
       confidence: record.confidence,
       checkedInAt: record.checkedInAt,
+      checkedOutAt: record.checkedOutAt,
+      status: record.status,
+      shiftId: record.shiftId,
+      location: record.location,
       isSynced: record.isSynced,
     );
   }
