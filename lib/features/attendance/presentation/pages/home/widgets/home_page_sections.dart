@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../../../core/theme/theme_cubit.dart';
 import '../../../cubit/home_stats_cubit.dart';
 import '../../../cubit/home_stats_state.dart';
 
@@ -153,13 +154,30 @@ class HomeTopBar extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(width: 10),
+        const SizedBox(width: 8),
+        IconButton(
+          onPressed: () => context.read<ThemeCubit>().toggleTheme(),
+          icon: Icon(
+            isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+            color: titleColor.withValues(alpha: 0.75),
+            size: 20,
+          ),
+          visualDensity: VisualDensity.compact,
+          style: IconButton.styleFrom(
+            backgroundColor: isDark
+                ? Colors.white.withValues(alpha: 0.05)
+                : Colors.black.withValues(alpha: 0.04),
+          ),
+        ),
+        const SizedBox(width: 2),
         IconButton(
           onPressed: onSettings,
           icon: Icon(
             Icons.settings_rounded,
             color: titleColor.withValues(alpha: 0.75),
+            size: 20,
           ),
+          visualDensity: VisualDensity.compact,
           style: IconButton.styleFrom(
             backgroundColor: isDark
                 ? Colors.white.withValues(alpha: 0.05)

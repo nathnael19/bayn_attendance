@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/theme/theme_cubit.dart';
 import '../../../../injection_container.dart' as di;
 import '../../data/datasources/person_remote_datasource.dart';
 import '../../domain/repositories/person_repository.dart';
@@ -67,28 +66,11 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final themeCubit = context.read<ThemeCubit>();
-
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
-          _buildSection(
-            context,
-            title: 'Appearance',
-            description: 'Switch between a darker scan-focused look and a brighter workspace theme.',
-            children: [
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Dark mode'),
-                subtitle: Text(isDark ? 'Enabled' : 'Disabled'),
-                value: isDark,
-                onChanged: (_) => themeCubit.toggleTheme(),
-              ),
-            ],
-          ),
           const SizedBox(height: 24),
           _buildSection(
             context,
