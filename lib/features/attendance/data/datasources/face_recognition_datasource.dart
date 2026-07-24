@@ -1,23 +1,20 @@
 import 'dart:io';
-import 'package:image/image.dart' as img;
+import 'dart:math' as math;
+import 'dart:typed_data';
 
-import 'person_local_datasource.dart';
-import '../models/person_model.dart';
+import 'package:flutter/foundation.dart';
 
-// ─────────────────────────────────────────────────────────────
+import '../../domain/entities/face_embedding.dart';
+import '../../domain/services/face_embedding_extractor.dart';
+import '../datasources/embedding_local_datasource.dart';
+import '../datasources/person_local_datasource.dart';
 
-const int _kHashSize = 8;
-const int _kMaxDistanceForMatch = 18;
+// ── Result ─────────────────────────────────────────────────
 
-/// Result returned after a face is matched against the registered persons.
 class RecognitionResult {
-  /// The matched person's employee/student ID (from your persons DB).
   final String personId;
   final String personName;
   final String department;
-
-  /// Confidence score between 0.0 and 1.0.
-  /// Backend teams: map your distance / similarity metric here.
   final double confidence;
 
   const RecognitionResult({
@@ -27,15 +24,6 @@ class RecognitionResult {
     required this.confidence,
   });
 
-  /// Parse from backend JSON response.
-  /// TODO: adjust keys to match your API's response shape.
-  /// Expected shape (example):
-  /// {
-  ///   "person_id":   "EMP-001",
-  ///   "name":        "Abebe Girma",
-  ///   "department":  "Engineering",
-  ///   "confidence":  0.97          // or "distance": 0.03 — convert accordingly
-  /// }
   factory RecognitionResult.fromJson(Map<String, dynamic> json) {
     return RecognitionResult(
       personId: json['person_id']?.toString() ?? '',
@@ -46,119 +34,146 @@ class RecognitionResult {
   }
 }
 
-// ─────────────────────────────────────────────────────────────
+// ── Datasource ───────────────────────────────────────────────
 
 abstract class FaceRecognitionDatasource {
-  /// Compare a captured face image against locally stored registration photos.
-  /// Returns a [RecognitionResult] on a successful match.
-  /// Throws [FaceNotRecognizedException] if no match found.
   Future<RecognitionResult> recognize(String imagePath);
+  Future<void> reloadEmbeddings();
 }
 
 class FaceRecognitionDatasourceImpl implements FaceRecognitionDatasource {
-  final PersonLocalDatasource personLocalDatasource;
+  final PersonLocalDatasource _personLocal;
+  final EmbeddingLocalDatasource _embeddingLocal;
+  final FaceEmbeddingExtractor _extractor;
 
-  FaceRecognitionDatasourceImpl({required this.personLocalDatasource});
+  Map<String, _CachedPerson>? _cache;
+
+  static const double _kSimilarityThreshold = 0.65;
+
+  FaceRecognitionDatasourceImpl({
+    required PersonLocalDatasource personLocalDatasource,
+    required EmbeddingLocalDatasource embeddingLocalDatasource,
+    required FaceEmbeddingExtractor embeddingExtractor,
+  })  : _personLocal = personLocalDatasource,
+        _embeddingLocal = embeddingLocalDatasource,
+        _extractor = embeddingExtractor;
+
+  @override
+  Future<void> reloadEmbeddings() async {
+    final persons = await _personLocal.getAllPersons();
+    final personMap = <String, _PersonInfo>{};
+    for (final p in persons) {
+      personMap[p.employeeId] = _PersonInfo(
+        name: p.name,
+        department: p.department,
+      );
+    }
+
+    final grouped = await _embeddingLocal.getAllEmbeddingsGrouped();
+
+    _cache = {};
+    for (final entry in grouped.entries) {
+      final info = personMap[entry.key];
+      if (info == null) continue;
+      _cache![entry.key] = _CachedPerson(
+        name: info.name,
+        department: info.department,
+        embeddings: entry.value,
+      );
+    }
+
+    debugPrint(
+      '[FaceRecognition] Loaded ${_cache?.length ?? 0} persons with '
+      '${grouped.values.fold(0, (s, l) => s + l.length)} embeddings',
+    );
+  }
+
+  Future<Map<String, _CachedPerson>> _getCache() async {
+    if (_cache == null) await reloadEmbeddings();
+    return _cache!;
+  }
 
   @override
   Future<RecognitionResult> recognize(String imagePath) async {
-    final capturedFile = File(imagePath);
-    if (!capturedFile.existsSync()) {
-      throw Exception('Captured image file not found: $imagePath');
+    await _extractor.loadModel();
+
+    final file = File(imagePath);
+    if (!file.existsSync()) {
+      throw Exception('Captured image not found: $imagePath');
     }
 
-    final capturedHash = _imageHash(capturedFile);
-    final persons = await personLocalDatasource.getAllPersons();
+    final bytes = await file.readAsBytes();
+    final captured = await _extractor.extractEmbedding(bytes);
 
-    if (persons.isEmpty) {
+    final cache = await _getCache();
+    if (cache.isEmpty) {
       throw const FaceNotRecognizedException();
     }
 
-    PersonModel? bestPerson;
-    int bestDistance = 1 << 30;
+    String? bestPersonId;
+    String? bestName;
+    String? bestDepartment;
+    var bestSimilarity = -1.0;
 
-    for (final person in persons) {
-      for (final imagePath in _allStoredImages(person)) {
-        final imageFile = File(imagePath);
-        if (!imageFile.existsSync()) continue;
-
-        final distance = _hashDistance(capturedHash, _imageHash(imageFile));
-        if (distance < bestDistance) {
-          bestDistance = distance;
-          bestPerson = person;
+    for (final entry in cache.entries) {
+      final cached = entry.value;
+      for (final emb in cached.embeddings) {
+        final sim = _cosineSimilarity(captured, emb.embedding);
+        if (sim > bestSimilarity) {
+          bestSimilarity = sim;
+          bestPersonId = entry.key;
+          bestName = cached.name;
+          bestDepartment = cached.department;
         }
       }
     }
 
-    if (bestPerson == null || bestDistance > _kMaxDistanceForMatch) {
+    if (bestPersonId == null || bestSimilarity < _kSimilarityThreshold) {
       throw const FaceNotRecognizedException();
     }
 
-    final confidence = 1.0 - (bestDistance / (_kHashSize * _kHashSize));
     return RecognitionResult(
-      personId: bestPerson.serverId ?? bestPerson.employeeId,
-      personName: bestPerson.name,
-      department: bestPerson.department,
-      confidence: confidence.clamp(0.0, 1.0),
+      personId: bestPersonId,
+      personName: bestName!,
+      department: bestDepartment ?? '',
+      confidence: bestSimilarity.clamp(0.0, 1.0),
     );
   }
 }
 
-List<String> _allStoredImages(PersonModel person) {
-  final images = <String>[];
-  for (final entry in person.faceImagePaths.entries) {
-    images.addAll(entry.value);
+// ── Helpers ──────────────────────────────────────────────────
+
+double _cosineSimilarity(Float32List a, Float32List b) {
+  var dot = 0.0, normA = 0.0, normB = 0.0;
+  for (var i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    normA += a[i] * a[i];
+    normB += b[i] * b[i];
   }
-  return images;
+  if (normA == 0 || normB == 0) return 0.0;
+  return dot / (math.sqrt(normA) * math.sqrt(normB));
 }
 
-BigInt _imageHash(File file) {
-  final bytes = file.readAsBytesSync();
-  final decoded = img.decodeImage(bytes);
-  if (decoded == null) {
-    throw Exception('Unsupported image file: ${file.path}');
-  }
+// ── Internal types ───────────────────────────────────────────
 
-  final resized = img.copyResize(
-    decoded,
-    width: _kHashSize + 1,
-    height: _kHashSize,
-  );
-  final grayscale = img.grayscale(resized);
-
-  var hash = BigInt.zero;
-  var bitIndex = 0;
-
-  for (var y = 0; y < _kHashSize; y++) {
-    for (var x = 0; x < _kHashSize; x++) {
-      final left = grayscale.getPixel(x, y).r.toInt();
-      final right = grayscale.getPixel(x + 1, y).r.toInt();
-      if (left > right) {
-        hash |= (BigInt.one << bitIndex);
-      }
-      bitIndex++;
-    }
-  }
-
-  return hash;
+class _PersonInfo {
+  final String name;
+  final String department;
+  const _PersonInfo({required this.name, required this.department});
 }
 
-int _hashDistance(BigInt a, BigInt b) {
-  final xor = a ^ b;
-  var distance = 0;
-  var value = xor;
-
-  while (value > BigInt.zero) {
-    if ((value & BigInt.one) == BigInt.one) {
-      distance++;
-    }
-    value = value >> 1;
-  }
-
-  return distance;
+class _CachedPerson {
+  final String name;
+  final String department;
+  final List<FaceEmbedding> embeddings;
+  const _CachedPerson({
+    required this.name,
+    required this.department,
+    required this.embeddings,
+  });
 }
 
-// ── Custom exceptions ─────────────────────────────────────────
+// ── Exception ────────────────────────────────────────────────
 
 class FaceNotRecognizedException implements Exception {
   const FaceNotRecognizedException();
