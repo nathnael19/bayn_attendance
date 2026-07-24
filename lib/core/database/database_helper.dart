@@ -16,7 +16,7 @@ class DatabaseHelper {
     return _db!;
   }
 
-  static const int _kVersion = 4;
+  static const int _kVersion = 5;
 
   Future<Database> _initDb() async {
     final docsDir = await getApplicationDocumentsDirectory();
@@ -40,9 +40,39 @@ class DatabaseHelper {
         if (oldVersion < 4) {
           try {
             await db.execute('ALTER TABLE persons ADD COLUMN name TEXT NOT NULL DEFAULT \'\'');
-          } catch (_) {
-            // column may already exist
-          }
+          } catch (_) {}
+        }
+        if (oldVersion < 5) {
+          try {
+            await db.execute('ALTER TABLE persons ADD COLUMN phone TEXT');
+          } catch (_) {}
+          try {
+            await db.execute('ALTER TABLE persons ADD COLUMN email TEXT');
+          } catch (_) {}
+          try {
+            await db.execute('ALTER TABLE persons ADD COLUMN role TEXT NOT NULL DEFAULT \'employee\'');
+          } catch (_) {}
+          try {
+            await db.execute('ALTER TABLE persons ADD COLUMN pin_code TEXT');
+          } catch (_) {}
+          try {
+            await db.execute('ALTER TABLE persons ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1');
+          } catch (_) {}
+          try {
+            await db.execute('ALTER TABLE persons ADD COLUMN shift_id INTEGER');
+          } catch (_) {}
+          try {
+            await db.execute('ALTER TABLE attendance_records ADD COLUMN checked_out_at TEXT');
+          } catch (_) {}
+          try {
+            await db.execute('ALTER TABLE attendance_records ADD COLUMN status TEXT NOT NULL DEFAULT \'present\'');
+          } catch (_) {}
+          try {
+            await db.execute('ALTER TABLE attendance_records ADD COLUMN shift_id INTEGER');
+          } catch (_) {}
+          try {
+            await db.execute('ALTER TABLE attendance_records ADD COLUMN location TEXT');
+          } catch (_) {}
         }
       },
     );
@@ -53,14 +83,20 @@ class DatabaseHelper {
   static Future<void> _createPersonsTable(Database db) async {
     await db.execute('''
       CREATE TABLE IF NOT EXISTS persons (
-        id              INTEGER PRIMARY KEY AUTOINCREMENT,
-        server_id       TEXT,
-        name            TEXT    NOT NULL,
-        employee_id     TEXT    NOT NULL UNIQUE,
-        department      TEXT    NOT NULL,
-        face_image_paths TEXT   NOT NULL DEFAULT '{}',
-        registered_at   TEXT    NOT NULL,
-        is_synced       INTEGER NOT NULL DEFAULT 0
+        id               INTEGER PRIMARY KEY AUTOINCREMENT,
+        server_id        TEXT,
+        name             TEXT    NOT NULL,
+        employee_id      TEXT    NOT NULL UNIQUE,
+        department       TEXT    NOT NULL,
+        phone            TEXT,
+        email            TEXT,
+        role             TEXT    NOT NULL DEFAULT 'employee',
+        pin_code         TEXT,
+        is_active        INTEGER NOT NULL DEFAULT 1,
+        shift_id         INTEGER,
+        face_image_paths TEXT    NOT NULL DEFAULT '{}',
+        registered_at    TEXT    NOT NULL,
+        is_synced        INTEGER NOT NULL DEFAULT 0
       )
     ''');
   }
@@ -75,6 +111,10 @@ class DatabaseHelper {
         department      TEXT    NOT NULL DEFAULT '',
         confidence      REAL    NOT NULL DEFAULT 0.0,
         checked_in_at   TEXT    NOT NULL,
+        checked_out_at  TEXT,
+        status          TEXT    NOT NULL DEFAULT 'present',
+        shift_id        INTEGER,
+        location        TEXT,
         is_synced       INTEGER NOT NULL DEFAULT 0
       )
     ''');
