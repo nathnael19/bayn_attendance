@@ -1,39 +1,36 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:attendance_management_system/core/theme/theme_cubit.dart';
 import 'package:attendance_management_system/main.dart';
 
 void main() {
-  testWidgets('theme toggle updates material app mode', (
+  testWidgets('homepage theme and settings controls work', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(
+      BlocProvider(
+        create: (_) => ThemeCubit(),
+        child: const MyApp(),
+      ),
+    );
 
     expect(find.text('BAYN'), findsOneWidget);
+    expect(find.byTooltip('Switch to dark mode'), findsOneWidget);
 
-    await tester.tap(find.byIcon(Icons.settings_rounded));
+    await tester.tap(find.byTooltip('Switch to dark mode'));
+    await tester.pumpAndSettle();
+
+    final darkMaterialApp = tester.widget<MaterialApp>(
+      find.byType(MaterialApp),
+    );
+    expect(darkMaterialApp.themeMode, ThemeMode.dark);
+    expect(find.byTooltip('Switch to light mode'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Open settings'));
     await tester.pumpAndSettle();
 
     expect(find.text('Settings'), findsOneWidget);
-
-    final materialAppBefore = tester.widget<MaterialApp>(
-      find.byType(MaterialApp),
-    );
-    expect(materialAppBefore.themeMode, ThemeMode.dark);
-
-    await tester.tap(find.byType(SwitchListTile));
-    await tester.pumpAndSettle();
-
-    final materialAppAfter = tester.widget<MaterialApp>(
-      find.byType(MaterialApp),
-    );
-    expect(materialAppAfter.themeMode, ThemeMode.light);
   });
 }
