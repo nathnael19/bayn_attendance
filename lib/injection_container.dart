@@ -3,13 +3,16 @@ import 'package:http/http.dart' as http;
 
 import 'features/attendance/data/datasources/attendance_local_datasource.dart';
 import 'features/attendance/data/datasources/attendance_remote_datasource.dart';
+import 'features/attendance/data/datasources/embedding_local_datasource.dart';
 import 'features/attendance/data/datasources/face_recognition_datasource.dart';
 import 'features/attendance/data/datasources/person_local_datasource.dart';
 import 'features/attendance/data/datasources/person_remote_datasource.dart';
 import 'features/attendance/data/repositories/attendance_repository_impl.dart';
 import 'features/attendance/data/repositories/person_repository_impl.dart';
+import 'features/attendance/data/services/tflite_embedding_extractor.dart';
 import 'features/attendance/domain/repositories/attendance_repository.dart';
 import 'features/attendance/domain/repositories/person_repository.dart';
+import 'features/attendance/domain/services/face_embedding_extractor.dart';
 import 'features/attendance/domain/usecases/get_all_persons.dart';
 import 'features/attendance/domain/usecases/get_today_stats.dart';
 import 'features/attendance/domain/usecases/log_attendance.dart';
@@ -25,6 +28,11 @@ Future<void> init() async {
   // ── External ──────────────────────────────────────────────
   sl.registerLazySingleton<http.Client>(() => http.Client());
 
+  // ── Services ──────────────────────────────────────────────
+  sl.registerLazySingleton<FaceEmbeddingExtractor>(
+    () => TfliteEmbeddingExtractor(),
+  );
+
   // ── Datasources ───────────────────────────────────────────
   sl.registerLazySingleton<PersonLocalDatasource>(
     () => PersonLocalDatasourceImpl(),
@@ -39,12 +47,24 @@ Future<void> init() async {
     () => AttendanceRemoteDatasourceImpl(httpClient: sl()),
   );
   sl.registerLazySingleton<FaceRecognitionDatasource>(
-    () => FaceRecognitionDatasourceImpl(personLocalDatasource: sl()),
+    () => FaceRecognitionDatasourceImpl(
+      personLocalDatasource: sl(),
+      embeddingLocalDatasource: sl(),
+      embeddingExtractor: sl(),
+    ),
+  );
+  sl.registerLazySingleton<EmbeddingLocalDatasource>(
+    () => EmbeddingLocalDatasourceImpl(),
   );
 
   // ── Repositories ──────────────────────────────────────────
   sl.registerLazySingleton<PersonRepository>(
-    () => PersonRepositoryImpl(local: sl(), remote: sl()),
+    () => PersonRepositoryImpl(
+      local: sl(),
+      remote: sl(),
+      embeddingLocal: sl(),
+      faceRecognition: sl(),
+    ),
   );
   sl.registerLazySingleton<AttendanceRepository>(
     () => AttendanceRepositoryImpl(local: sl(), remote: sl()),
@@ -60,7 +80,12 @@ Future<void> init() async {
   sl.registerFactory(
     () => AttendanceCubit(faceRecognition: sl(), logAttendance: sl()),
   );
-  sl.registerFactory(() => RegisterCubit(registerPersonUseCase: sl()));
+  sl.registerFactory(
+    () => RegisterCubit(
+      registerPersonUseCase: sl(),
+      embeddingExtractor: sl(),
+    ),
+  );
   sl.registerFactory(() => HomeStatsCubit(getTodayStats: sl()));
   sl.registerFactory(() => UsersCubit(getAllPersons: sl()));
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_cubit.dart';
+import 'features/attendance/data/datasources/face_recognition_datasource.dart';
 import 'features/attendance/presentation/cubit/home_stats_cubit.dart';
 import 'features/attendance/presentation/pages/home_page.dart';
 import 'injection_container.dart' as di;
@@ -9,6 +10,9 @@ import 'injection_container.dart' as di;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await di.init();
+
+  await di.sl<FaceRecognitionDatasource>().reloadEmbeddings();
+
   runApp(
     MultiBlocProvider(
       providers: [
