@@ -1,5 +1,16 @@
 import '../entities/attendance_record.dart';
 
+/// Thrown when a person attempts to mark attendance more than once in a day.
+class DuplicateAttendanceException implements Exception {
+  final String personName;
+  final DateTime checkedInAt;
+
+  const DuplicateAttendanceException({
+    required this.personName,
+    required this.checkedInAt,
+  });
+}
+
 /// Stats for the home page — all derived from local data.
 class TodayStats {
   final int totalCheckedIn;

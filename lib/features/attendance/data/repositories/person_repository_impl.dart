@@ -51,12 +51,14 @@ class PersonRepositoryImpl implements PersonRepository {
     }
 
     try {
-      final serverId = await remote.registerPerson(saved,
-          embeddings: person.embeddings.isNotEmpty
-              ? person.embeddings
+      final serverId = await remote.registerPerson(
+        saved,
+        embeddings: person.embeddings.isNotEmpty
+            ? person.embeddings
                   .map((e) => FaceEmbeddingModel.fromEntity(e))
                   .toList()
-              : null);
+            : null,
+      );
       if (saved.localId != null && serverId.isNotEmpty) {
         await local.updateSyncStatus(saved.localId!, serverId);
         return saved.copyWith(serverId: serverId, isSynced: true);
@@ -80,16 +82,20 @@ class PersonRepositoryImpl implements PersonRepository {
 
     for (final person in unsynced) {
       try {
-        final embeddings =
-            await embeddingLocal.getEmbeddingsByPerson(person.employeeId);
-        final serverId = await remote.registerPerson(person,
-            embeddings: embeddings.isNotEmpty ? embeddings : null);
+        final embeddings = await embeddingLocal.getEmbeddingsByPerson(
+          person.employeeId,
+        );
+        final serverId = await remote.registerPerson(
+          person,
+          embeddings: embeddings.isNotEmpty ? embeddings : null,
+        );
         if (person.localId != null && serverId.isNotEmpty) {
           await local.updateSyncStatus(person.localId!, serverId);
         }
       } catch (e) {
         debugPrint(
-            '[PersonRepository] Sync retry failed for ${person.name}: $e');
+          '[PersonRepository] Sync retry failed for ${person.name}: $e',
+        );
       }
     }
   }
@@ -103,22 +109,26 @@ class PersonRepositoryImpl implements PersonRepository {
     final allEmbeddingModels = <FaceEmbeddingModel>[];
 
     for (final emp in employees) {
-      personModels.add(PersonModel(
-        serverId: emp.serverId.isNotEmpty ? emp.serverId : null,
-        name: emp.name,
-        employeeId: emp.employeeId,
-        department: emp.department,
-        registeredAt: emp.registeredAt,
-        isSynced: true,
-      ));
+      personModels.add(
+        PersonModel(
+          serverId: emp.serverId.isNotEmpty ? emp.serverId : null,
+          name: emp.name,
+          employeeId: emp.employeeId,
+          department: emp.department,
+          registeredAt: emp.registeredAt,
+          isSynced: true,
+        ),
+      );
 
       for (final rem in emp.embeddings) {
-        allEmbeddingModels.add(FaceEmbeddingModel.fromRemote(
-          personId: emp.employeeId,
-          label: rem.label,
-          vector: rem.vector,
-          createdAt: emp.registeredAt,
-        ));
+        allEmbeddingModels.add(
+          FaceEmbeddingModel.fromRemote(
+            personId: emp.employeeId,
+            label: rem.label,
+            vector: rem.vector,
+            createdAt: emp.registeredAt,
+          ),
+        );
         embeddingCount++;
       }
     }
@@ -138,6 +148,43 @@ class PersonRepositoryImpl implements PersonRepository {
 
     return SyncResult(
       employeesSynced: personModels.length,
+      embeddingsSynced: embeddingCount,
+    );
+  }
+
+  @override
+  Future<SyncResult> pushToServer() async {
+    final unsynced = await local.getUnsyncedPersons();
+    if (unsynced.isEmpty) {
+      return const SyncResult(employeesSynced: 0, embeddingsSynced: 0);
+    }
+
+    int embeddingCount = 0;
+    int pushedCount = 0;
+
+    for (final person in unsynced) {
+      try {
+        final embeddings = await embeddingLocal.getEmbeddingsByPerson(
+          person.employeeId,
+        );
+        final serverId = await remote.registerPerson(
+          person,
+          embeddings: embeddings.isNotEmpty ? embeddings : null,
+        );
+        if (person.localId != null && serverId.isNotEmpty) {
+          await local.updateSyncStatus(person.localId!, serverId);
+          pushedCount++;
+          embeddingCount += embeddings.length;
+        }
+      } catch (e) {
+        debugPrint(
+          '[PersonRepository] Push to server failed for ${person.name}: $e',
+        );
+      }
+    }
+
+    return SyncResult(
+      employeesSynced: pushedCount,
       embeddingsSynced: embeddingCount,
     );
   }
