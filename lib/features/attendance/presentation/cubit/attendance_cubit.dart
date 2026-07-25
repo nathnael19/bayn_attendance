@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../data/datasources/face_recognition_datasource.dart';
 import '../../domain/entities/attendance_record.dart';
+import '../../domain/repositories/attendance_repository.dart';
 import '../../domain/usecases/log_attendance.dart';
 import 'attendance_state.dart';
 
@@ -30,8 +31,8 @@ class AttendanceCubit extends Cubit<AttendanceState> {
       // ── Call face recognition matcher ──────────────────────
       final result = await faceRecognition.recognize(imagePath);
 
-      // ── Log the successful check-in ────────────────────────
-      await logAttendance(
+      // ── Log the attendance scan (type determined by the repository) ─
+      final logged = await logAttendance(
         AttendanceRecord(
           personId: result.personId,
           personName: result.personName,
@@ -53,6 +54,7 @@ class AttendanceCubit extends Cubit<AttendanceState> {
           employeeName: result.personName,
           time: timeStr,
           confidence: result.confidence,
+          scanType: logged.scanType,
         ),
       );
     } on FaceNotRecognizedException {
@@ -62,6 +64,14 @@ class AttendanceCubit extends Cubit<AttendanceState> {
           message: 'Face not recognized. Please try again.',
         ),
       );
+    } on DuplicateAttendanceException catch (e) {
+      _isProcessing = false;
+      final hour = e.checkedInAt.hour;
+      final minute = e.checkedInAt.minute.toString().padLeft(2, '0');
+      final period = hour >= 12 ? 'PM' : 'AM';
+      final displayHour = hour > 12 ? hour - 12 : (hour == 0 ? 12 : hour);
+      final timeStr = '$displayHour:$minute $period';
+      emit(AttendanceAlreadyMarked(employeeName: e.personName, time: timeStr));
     } catch (e) {
       _isProcessing = false;
       emit(

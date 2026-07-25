@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../domain/entities/attendance_record.dart';
 
 abstract class AttendanceState extends Equatable {
   const AttendanceState();
@@ -15,15 +16,17 @@ class AttendanceSuccess extends AttendanceState {
   final String employeeName;
   final String time;
   final double confidence;
+  final ScanType scanType;
 
   const AttendanceSuccess({
     required this.employeeName,
     required this.time,
     this.confidence = 0.0,
+    this.scanType = ScanType.checkIn,
   });
 
   @override
-  List<Object> get props => [employeeName, time, confidence];
+  List<Object> get props => [employeeName, time, confidence, scanType];
 }
 
 class AttendanceFailure extends AttendanceState {
@@ -33,4 +36,17 @@ class AttendanceFailure extends AttendanceState {
 
   @override
   List<Object> get props => [message];
+}
+
+class AttendanceAlreadyMarked extends AttendanceState {
+  final String employeeName;
+  final String time;
+
+  const AttendanceAlreadyMarked({
+    required this.employeeName,
+    required this.time,
+  });
+
+  @override
+  List<Object> get props => [employeeName, time];
 }

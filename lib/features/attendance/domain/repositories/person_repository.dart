@@ -27,6 +27,9 @@ abstract class PersonRepository {
   /// replace local data, and reload the recognition cache.
   Future<SyncResult> pullFromServer();
 
+  /// Push all local un-synced persons to the server.
+  Future<SyncResult> pushToServer();
+
   /// Delete a person and their face data by employee ID.
   Future<void> deletePerson(String employeeId);
 }
