@@ -14,6 +14,7 @@ class AttendanceRecordModel extends AttendanceRecord {
     super.shiftId,
     super.location,
     super.isSynced,
+    super.scanType,
   });
 
   // ── SQLite ────────────────────────────────────────────────
@@ -34,6 +35,7 @@ class AttendanceRecordModel extends AttendanceRecord {
       shiftId: map['shift_id'] as int?,
       location: map['location'] as String?,
       isSynced: (map['is_synced'] as int? ?? 0) == 1,
+      scanType: ScanType.fromValue(map['scan_type'] as String? ?? 'check_in'),
     );
   }
 
@@ -50,6 +52,7 @@ class AttendanceRecordModel extends AttendanceRecord {
       'status': status,
       'shift_id': shiftId,
       'location': location,
+      'scan_type': scanType.value,
       'is_synced': isSynced ? 1 : 0,
     };
   }
@@ -67,11 +70,14 @@ class AttendanceRecordModel extends AttendanceRecord {
       'status': status,
       'shift_id': shiftId,
       'location': location,
+      'scan_type': scanType.value,
     };
   }
 
   factory AttendanceRecordModel.fromJson(
-      Map<String, dynamic> json, AttendanceRecord local) {
+    Map<String, dynamic> json,
+    AttendanceRecord local,
+  ) {
     return AttendanceRecordModel(
       localId: local.localId,
       serverId: json['id']?.toString(),
@@ -102,6 +108,7 @@ class AttendanceRecordModel extends AttendanceRecord {
       shiftId: r.shiftId,
       location: r.location,
       isSynced: r.isSynced,
+      scanType: r.scanType,
     );
   }
 }
