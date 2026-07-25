@@ -100,7 +100,11 @@ class _DateBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.calendar_today_outlined, size: 14, color: AppTheme.homeGold),
+          const Icon(
+            Icons.calendar_today_outlined,
+            size: 14,
+            color: AppTheme.homeGold,
+          ),
           const SizedBox(width: 6),
           Text(
             _formattedDate(DateTime.now()),
@@ -324,7 +328,11 @@ class HomeProgressCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.schedule_outlined, size: 18, color: AppTheme.homeGold),
+              const Icon(
+                Icons.schedule_outlined,
+                size: 18,
+                color: AppTheme.homeGold,
+              ),
             ],
           ),
           const SizedBox(height: 20),
@@ -335,13 +343,96 @@ class HomeProgressCard extends StatelessWidget {
   }
 }
 
-class _ProgressTimeline extends StatelessWidget {
+class _ProgressTimeline extends StatefulWidget {
   const _ProgressTimeline();
+
+  @override
+  State<_ProgressTimeline> createState() => _ProgressTimelineState();
+}
+
+class _ProgressTimelineState extends State<_ProgressTimeline> {
+  late Timer _timer;
+  late DateTime _now;
+
+  @override
+  void initState() {
+    super.initState();
+    _now = DateTime.now();
+    _timer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted) {
+        setState(() {
+          _now = DateTime.now();
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final lineColor = theme.colorScheme.onSurface.withValues(alpha: 0.18);
+
+    // Logic based on provided shift hours:
+    // Check-in: 8:00 AM - 8:30 AM (assuming 3:30 AM was a typo for 8:30 AM)
+    // Lunch: 1:30 PM - 2:15 PM
+    // Check-out: 5:00 PM - 6:00 PM
+
+    final int currentMinutes = _now.hour * 60 + _now.minute;
+
+    const int checkInStart = 8 * 60; // 8:00 AM
+    const int checkInEnd = 8 * 60 + 30; // 8:30 AM
+
+    const int lunchStart = 13 * 60 + 30; // 1:30 PM
+    const int lunchEnd = 14 * 60 + 15; // 2:15 PM
+
+    const int checkOutStart = 17 * 60; // 5:00 PM
+    const int checkOutEnd = 18 * 60; // 6:00 PM
+
+    bool checkInActive = false;
+    bool checkInCompleted = false;
+    bool lunchActive = false;
+    bool lunchCompleted = false;
+    bool checkOutActive = false;
+    bool checkOutCompleted = false;
+
+    // Check-in logic
+    if (currentMinutes >= checkInStart && currentMinutes <= checkInEnd) {
+      checkInActive = true;
+    } else if (currentMinutes > checkInEnd) {
+      checkInCompleted = true;
+    }
+
+    // Lunch logic
+    if (currentMinutes >= lunchStart && currentMinutes <= lunchEnd) {
+      lunchActive = true;
+    } else if (currentMinutes > lunchEnd) {
+      lunchCompleted = true;
+    }
+
+    // Check-out logic
+    if (currentMinutes >= checkOutStart && currentMinutes <= checkOutEnd) {
+      checkOutActive = true;
+    } else if (currentMinutes > checkOutEnd) {
+      checkOutCompleted = true;
+    }
+
+    String getStatus(bool active, bool completed) {
+      if (active) return 'Pending';
+      if (completed) return 'Completed';
+      return 'Upcoming';
+    }
+
+    Color getAccent(bool active, bool completed) {
+      if (completed) return AppTheme.homeStatusGreen;
+      if (active) return AppTheme.homeGold;
+      return const Color(0xFF9C9992);
+    }
 
     return SizedBox(
       height: 76,
@@ -353,32 +444,37 @@ class _ProgressTimeline extends StatelessWidget {
             right: 12,
             child: Container(height: 1, color: lineColor),
           ),
-          const Row(
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: _ProgressStep(
                   label: 'Check-in',
-                  status: 'Pending',
+                  status: getStatus(checkInActive, checkInCompleted),
                   alignment: CrossAxisAlignment.start,
-                  accent: AppTheme.homeGold,
-                  active: true,
+                  accent: getAccent(checkInActive, checkInCompleted),
+                  active: checkInActive,
+                  completed: checkInCompleted,
                 ),
               ),
               Expanded(
                 child: _ProgressStep(
                   label: 'Lunch',
-                  status: 'Upcoming',
+                  status: getStatus(lunchActive, lunchCompleted),
                   alignment: CrossAxisAlignment.center,
-                  accent: Color(0xFF9C9992),
+                  accent: getAccent(lunchActive, lunchCompleted),
+                  active: lunchActive,
+                  completed: lunchCompleted,
                 ),
               ),
               Expanded(
                 child: _ProgressStep(
                   label: 'Check-out',
-                  status: 'Upcoming',
+                  status: getStatus(checkOutActive, checkOutCompleted),
                   alignment: CrossAxisAlignment.end,
-                  accent: Color(0xFF9C9992),
+                  accent: getAccent(checkOutActive, checkOutCompleted),
+                  active: checkOutActive,
+                  completed: checkOutCompleted,
                 ),
               ),
             ],
@@ -395,6 +491,7 @@ class _ProgressStep extends StatelessWidget {
   final CrossAxisAlignment alignment;
   final Color accent;
   final bool active;
+  final bool completed;
 
   const _ProgressStep({
     required this.label,
@@ -402,13 +499,25 @@ class _ProgressStep extends StatelessWidget {
     required this.alignment,
     required this.accent,
     this.active = false,
+    this.completed = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final textColor = theme.colorScheme.onSurface.withValues(alpha: active ? 0.9 : 0.68);
-    final statusColor = theme.colorScheme.onSurface.withValues(alpha: active ? 0.62 : 0.4);
+    final isHighlighted = active || completed;
+    final textColor = theme.colorScheme.onSurface.withValues(
+      alpha: isHighlighted ? 0.9 : 0.68,
+    );
+    final statusColor = theme.colorScheme.onSurface.withValues(
+      alpha: isHighlighted ? 0.62 : 0.4,
+    );
+
+    IconData getIcon() {
+      if (completed) return Icons.check;
+      if (active) return Icons.radio_button_unchecked;
+      return Icons.more_horiz;
+    }
 
     return Column(
       crossAxisAlignment: alignment,
@@ -417,15 +526,13 @@ class _ProgressStep extends StatelessWidget {
           width: 24,
           height: 24,
           decoration: BoxDecoration(
-            color: theme.colorScheme.surfaceContainerHighest,
+            color: completed
+                ? accent.withValues(alpha: 0.1)
+                : theme.colorScheme.surfaceContainerHighest,
             shape: BoxShape.circle,
-            border: Border.all(color: accent, width: active ? 2 : 1),
+            border: Border.all(color: accent, width: isHighlighted ? 2 : 1),
           ),
-          child: Icon(
-            active ? Icons.radio_button_unchecked : Icons.more_horiz,
-            size: active ? 13 : 12,
-            color: accent,
-          ),
+          child: Icon(getIcon(), size: active ? 13 : 14, color: accent),
         ),
         const SizedBox(height: 7),
         Text(
@@ -439,10 +546,7 @@ class _ProgressStep extends StatelessWidget {
         const SizedBox(height: 1),
         Text(
           status,
-          style: GoogleFonts.readexPro(
-            color: statusColor,
-            fontSize: 10,
-          ),
+          style: GoogleFonts.readexPro(color: statusColor, fontSize: 10),
         ),
       ],
     );
@@ -528,10 +632,7 @@ class _HomeScanActionState extends State<HomeScanAction> {
           const SizedBox(height: 2),
           Text(
             'Takes only a few seconds',
-            style: GoogleFonts.readexPro(
-              color: mutedColor,
-              fontSize: 11,
-            ),
+            style: GoogleFonts.readexPro(color: mutedColor, fontSize: 11),
           ),
         ],
       ),
@@ -549,12 +650,18 @@ class HomeBottomNote extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.only(top: 16),
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant)),
+        border: Border(
+          top: BorderSide(color: theme.colorScheme.outlineVariant),
+        ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.verified_user_outlined, size: 17, color: AppTheme.homeStatusGreen),
+          const Icon(
+            Icons.verified_user_outlined,
+            size: 17,
+            color: AppTheme.homeStatusGreen,
+          ),
           const SizedBox(width: 8),
           Flexible(
             child: Text(
@@ -574,12 +681,29 @@ class HomeBottomNote extends StatelessWidget {
 }
 
 String _formattedDate(DateTime date) {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
   return 'Today · ${date.day} ${months[date.month - 1]}';
 }
 
 String _formattedTime(DateTime time) {
-  final hour = time.hour == 0 ? 12 : time.hour > 12 ? time.hour - 12 : time.hour;
+  final hour = time.hour == 0
+      ? 12
+      : time.hour > 12
+      ? time.hour - 12
+      : time.hour;
   final period = time.hour >= 12 ? 'PM' : 'AM';
   return '${hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')} $period';
 }
