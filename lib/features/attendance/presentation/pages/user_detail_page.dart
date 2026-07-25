@@ -118,7 +118,7 @@ class _DetailAvatar extends StatelessWidget {
             width: 80,
             height: 80,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => _initialAvatar(),
+            errorBuilder: (_, _, _) => _initialAvatar(),
           ),
         ),
       );
@@ -230,11 +230,7 @@ class _InfoCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          _InfoRow(
-            label: 'Name',
-            value: person.name,
-            isDark: isDark,
-          ),
+          _InfoRow(label: 'Name', value: person.name, isDark: isDark),
           _InfoRow(
             label: 'Employee ID',
             value: person.employeeId,
@@ -251,17 +247,9 @@ class _InfoCard extends StatelessWidget {
             isDark: isDark,
           ),
           if (person.phone != null)
-            _InfoRow(
-              label: 'Phone',
-              value: person.phone!,
-              isDark: isDark,
-            ),
+            _InfoRow(label: 'Phone', value: person.phone!, isDark: isDark),
           if (person.email != null)
-            _InfoRow(
-              label: 'Email',
-              value: person.email!,
-              isDark: isDark,
-            ),
+            _InfoRow(label: 'Email', value: person.email!, isDark: isDark),
           _InfoRow(
             label: 'Status',
             value: person.isActive ? 'Active' : 'Inactive',
@@ -290,8 +278,18 @@ class _InfoCard extends StatelessWidget {
 
   String _formatDate(DateTime dt) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     final day = dt.day.toString().padLeft(2, '0');
     final hour = dt.hour.toString().padLeft(2, '0');
@@ -423,7 +421,7 @@ class _FaceImagesCard extends StatelessWidget {
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemCount: entry.value.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 10),
+                      separatorBuilder: (_, _) => const SizedBox(width: 10),
                       itemBuilder: (_, i) {
                         final file = File(entry.value[i]);
                         return ClipRRect(
@@ -434,7 +432,7 @@ class _FaceImagesCard extends StatelessWidget {
                                   width: 90,
                                   height: 90,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) =>
+                                  errorBuilder: (_, _, _) =>
                                       _imagePlaceholder(isDark),
                                 )
                               : _imagePlaceholder(isDark),

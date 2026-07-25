@@ -516,7 +516,7 @@ class _FilterDropdown<T> extends StatelessWidget {
     return Semantics(
       label: label,
       child: DropdownButtonFormField<T>(
-        value: value,
+        initialValue: value,
         isExpanded: true,
         menuMaxHeight: 320,
         icon: Icon(Icons.keyboard_arrow_down_rounded, color: colors.text),
@@ -595,7 +595,7 @@ class _UsersList extends StatelessWidget {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: persons.length,
-        separatorBuilder: (_, __) =>
+        separatorBuilder: (_, _) =>
             Divider(height: 1, thickness: 1, color: colors.divider),
         itemBuilder: (context, index) {
           final person = persons[index];
@@ -912,7 +912,7 @@ class _ProfileAvatar extends StatelessWidget {
           width: 48,
           height: 48,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _initialAvatar(),
+          errorBuilder: (_, _, _) => _initialAvatar(),
         ),
       );
     }

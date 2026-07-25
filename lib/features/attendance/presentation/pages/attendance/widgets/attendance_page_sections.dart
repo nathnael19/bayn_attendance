@@ -24,7 +24,7 @@ class AttendanceFaceHint extends StatelessWidget {
           child: Center(
             child: AnimatedBuilder(
               animation: animation,
-              builder: (_, __) => Opacity(
+              builder: (_, _) => Opacity(
                 opacity: 0.5 + 0.5 * animation.value,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
@@ -149,7 +149,7 @@ class AttendanceParticles extends StatelessWidget {
     return Positioned.fill(
       child: AnimatedBuilder(
         animation: animation,
-        builder: (_, __) =>
+        builder: (_, _) =>
             CustomPaint(painter: AttendanceParticlePainter(animation.value)),
       ),
     );
@@ -206,7 +206,7 @@ class AttendanceHeader extends StatelessWidget {
             children: [
               AnimatedBuilder(
                 animation: headerGlowAnimation,
-                builder: (_, __) => Text(
+                builder: (_, _) => Text(
                   'BAYN',
                   style: TextStyle(
                     color: Color.lerp(
@@ -261,6 +261,8 @@ class AttendanceScanArea extends StatelessWidget {
                 ? 'SCANNING'
                 : state is AttendanceSuccess
                 ? 'SCAN COMPLETE'
+                : state is AttendanceAlreadyMarked
+                ? 'ALREADY MARKED'
                 : state is AttendanceFailure
                 ? 'SCAN FAILED'
                 : faceVisible
@@ -268,6 +270,8 @@ class AttendanceScanArea extends StatelessWidget {
                 : 'WAITING',
             color: state is AttendanceSuccess
                 ? const Color(0xFF00E676)
+                : state is AttendanceAlreadyMarked
+                ? const Color(0xFFFFAB00)
                 : state is AttendanceFailure
                 ? const Color(0xFFFF1744)
                 : faceVisible
@@ -371,8 +375,12 @@ class _LiveIndicatorState extends State<_LiveIndicator>
     final isFailure = widget.state is AttendanceFailure;
     final isScanning = widget.state is AttendanceScanning;
 
+    final isAlreadyMarked = widget.state is AttendanceAlreadyMarked;
+
     final label = isSuccess
         ? 'VERIFIED'
+        : isAlreadyMarked
+        ? 'MARKED'
         : isFailure
         ? 'FAILED'
         : isScanning
@@ -383,6 +391,8 @@ class _LiveIndicatorState extends State<_LiveIndicator>
 
     final color = isSuccess
         ? const Color(0xFF00E676)
+        : isAlreadyMarked
+        ? const Color(0xFFFFAB00)
         : isFailure
         ? const Color(0xFFFF1744)
         : isScanning
@@ -395,7 +405,7 @@ class _LiveIndicatorState extends State<_LiveIndicator>
 
     return AnimatedBuilder(
       animation: _blink,
-      builder: (_, __) => Container(
+      builder: (_, _) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.08),
@@ -502,7 +512,7 @@ class _GlitchTextState extends State<_GlitchText>
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _controller,
-      builder: (_, __) {
+      builder: (_, _) {
         final flicker = _controller.value > 0.92 && _controller.value < 0.95
             ? 0.4
             : 1.0;

@@ -421,7 +421,7 @@ class _RegisterCaptureStepState extends State<RegisterCaptureStep>
               Center(
                 child: AnimatedBuilder(
                   animation: _ringController,
-                  builder: (_, __) {
+                  builder: (_, _) {
                     return CustomPaint(
                       size: const Size(250, 250),
                       painter: _RingPainter(
