@@ -1,5 +1,48 @@
 import 'package:equatable/equatable.dart';
 
+/// The type of scan within a single work day.
+enum ScanType {
+  checkIn,
+  lunchBreak,
+  checkOut;
+
+  /// DB / JSON string representation.
+  String get value {
+    switch (this) {
+      case ScanType.checkIn:
+        return 'check_in';
+      case ScanType.lunchBreak:
+        return 'lunch_break';
+      case ScanType.checkOut:
+        return 'check_out';
+    }
+  }
+
+  /// Parses the DB / JSON string back to an enum value.
+  static ScanType fromValue(String value) {
+    switch (value) {
+      case 'lunch_break':
+        return ScanType.lunchBreak;
+      case 'check_out':
+        return ScanType.checkOut;
+      default:
+        return ScanType.checkIn;
+    }
+  }
+
+  /// Human-readable label used in the UI.
+  String get label {
+    switch (this) {
+      case ScanType.checkIn:
+        return 'Check-In';
+      case ScanType.lunchBreak:
+        return 'Return from Lunch';
+      case ScanType.checkOut:
+        return 'Check-Out';
+    }
+  }
+}
+
 /// Represents a single successful attendance check-in.
 class AttendanceRecord extends Equatable {
   final int? localId;
@@ -14,6 +57,7 @@ class AttendanceRecord extends Equatable {
   final int? shiftId;
   final String? location;
   final bool isSynced;
+  final ScanType scanType;
 
   const AttendanceRecord({
     this.localId,
@@ -28,6 +72,7 @@ class AttendanceRecord extends Equatable {
     this.shiftId,
     this.location,
     this.isSynced = false,
+    this.scanType = ScanType.checkIn,
   });
 
   AttendanceRecord copyWith({
@@ -43,6 +88,7 @@ class AttendanceRecord extends Equatable {
     int? shiftId,
     String? location,
     bool? isSynced,
+    ScanType? scanType,
   }) {
     return AttendanceRecord(
       localId: localId ?? this.localId,
@@ -57,22 +103,24 @@ class AttendanceRecord extends Equatable {
       shiftId: shiftId ?? this.shiftId,
       location: location ?? this.location,
       isSynced: isSynced ?? this.isSynced,
+      scanType: scanType ?? this.scanType,
     );
   }
 
   @override
   List<Object?> get props => [
-        localId,
-        serverId,
-        personId,
-        personName,
-        department,
-        confidence,
-        checkedInAt,
-        checkedOutAt,
-        status,
-        shiftId,
-        location,
-        isSynced,
-      ];
+    localId,
+    serverId,
+    personId,
+    personName,
+    department,
+    confidence,
+    checkedInAt,
+    checkedOutAt,
+    status,
+    shiftId,
+    location,
+    isSynced,
+    scanType,
+  ];
 }
