@@ -16,7 +16,7 @@ class DatabaseHelper {
     return _db!;
   }
 
-  static const int _kVersion = 5;
+  static const int _kVersion = 6;
 
   Future<Database> _initDb() async {
     final docsDir = await getApplicationDocumentsDirectory();
@@ -39,7 +39,16 @@ class DatabaseHelper {
         }
         if (oldVersion < 4) {
           try {
-            await db.execute('ALTER TABLE persons ADD COLUMN name TEXT NOT NULL DEFAULT \'\'');
+            await db.execute(
+              'ALTER TABLE persons ADD COLUMN name TEXT NOT NULL DEFAULT \'\'',
+            );
+          } catch (_) {}
+        }
+        if (oldVersion < 6) {
+          try {
+            await db.execute(
+              "ALTER TABLE attendance_records ADD COLUMN scan_type TEXT NOT NULL DEFAULT 'check_in'",
+            );
           } catch (_) {}
         }
         if (oldVersion < 5) {
@@ -50,28 +59,40 @@ class DatabaseHelper {
             await db.execute('ALTER TABLE persons ADD COLUMN email TEXT');
           } catch (_) {}
           try {
-            await db.execute('ALTER TABLE persons ADD COLUMN role TEXT NOT NULL DEFAULT \'employee\'');
+            await db.execute(
+              'ALTER TABLE persons ADD COLUMN role TEXT NOT NULL DEFAULT \'employee\'',
+            );
           } catch (_) {}
           try {
             await db.execute('ALTER TABLE persons ADD COLUMN pin_code TEXT');
           } catch (_) {}
           try {
-            await db.execute('ALTER TABLE persons ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1');
+            await db.execute(
+              'ALTER TABLE persons ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1',
+            );
           } catch (_) {}
           try {
             await db.execute('ALTER TABLE persons ADD COLUMN shift_id INTEGER');
           } catch (_) {}
           try {
-            await db.execute('ALTER TABLE attendance_records ADD COLUMN checked_out_at TEXT');
+            await db.execute(
+              'ALTER TABLE attendance_records ADD COLUMN checked_out_at TEXT',
+            );
           } catch (_) {}
           try {
-            await db.execute('ALTER TABLE attendance_records ADD COLUMN status TEXT NOT NULL DEFAULT \'present\'');
+            await db.execute(
+              'ALTER TABLE attendance_records ADD COLUMN status TEXT NOT NULL DEFAULT \'present\'',
+            );
           } catch (_) {}
           try {
-            await db.execute('ALTER TABLE attendance_records ADD COLUMN shift_id INTEGER');
+            await db.execute(
+              'ALTER TABLE attendance_records ADD COLUMN shift_id INTEGER',
+            );
           } catch (_) {}
           try {
-            await db.execute('ALTER TABLE attendance_records ADD COLUMN location TEXT');
+            await db.execute(
+              'ALTER TABLE attendance_records ADD COLUMN location TEXT',
+            );
           } catch (_) {}
         }
       },
@@ -115,6 +136,7 @@ class DatabaseHelper {
         status          TEXT    NOT NULL DEFAULT 'present',
         shift_id        INTEGER,
         location        TEXT,
+        scan_type       TEXT    NOT NULL DEFAULT 'check_in',
         is_synced       INTEGER NOT NULL DEFAULT 0
       )
     ''');
