@@ -10,7 +10,8 @@ class ScanLine extends StatefulWidget {
   State<ScanLine> createState() => _ScanLineState();
 }
 
-class _ScanLineState extends State<ScanLine> with SingleTickerProviderStateMixin {
+class _ScanLineState extends State<ScanLine>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
 
@@ -34,7 +35,7 @@ class _ScanLineState extends State<ScanLine> with SingleTickerProviderStateMixin
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _animation,
-      builder: (_, __) {
+      builder: (_, _) {
         return Align(
           alignment: Alignment(0, (_animation.value * 2) - 1),
           child: Container(
@@ -76,7 +77,8 @@ class PulseRing extends StatefulWidget {
   State<PulseRing> createState() => _PulseRingState();
 }
 
-class _PulseRingState extends State<PulseRing> with SingleTickerProviderStateMixin {
+class _PulseRingState extends State<PulseRing>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnim;
   late Animation<double> _opacityAnim;
@@ -88,12 +90,14 @@ class _PulseRingState extends State<PulseRing> with SingleTickerProviderStateMix
       vsync: this,
       duration: const Duration(milliseconds: 1600),
     )..repeat();
-    _scaleAnim = Tween(begin: 0.85, end: 1.15).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
-    _opacityAnim = Tween(begin: 0.7, end: 0.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
-    );
+    _scaleAnim = Tween(
+      begin: 0.85,
+      end: 1.15,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _opacityAnim = Tween(
+      begin: 0.7,
+      end: 0.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
   }
 
   @override
@@ -106,7 +110,7 @@ class _PulseRingState extends State<PulseRing> with SingleTickerProviderStateMix
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _controller,
-      builder: (_, __) {
+      builder: (_, _) {
         return Opacity(
           opacity: _opacityAnim.value,
           child: Transform.scale(
@@ -134,6 +138,7 @@ class BiometricScanFrame extends StatelessWidget {
 
   Color get _frameColor {
     if (state is AttendanceSuccess) return const Color(0xFF00E676);
+    if (state is AttendanceAlreadyMarked) return const Color(0xFFFFAB00);
     if (state is AttendanceFailure) return const Color(0xFFFF1744);
     return const Color(0xFF00E5FF);
   }
@@ -141,8 +146,10 @@ class BiometricScanFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSuccess = state is AttendanceSuccess;
+    final isAlreadyMarked = state is AttendanceAlreadyMarked;
     final isFailure = state is AttendanceFailure;
-    final isScanning = state is AttendanceScanning || state is AttendanceInitial;
+    final isScanning =
+        state is AttendanceScanning || state is AttendanceInitial;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 400),
@@ -162,9 +169,13 @@ class BiometricScanFrame extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: _frameColor.withValues(alpha: isSuccess || isFailure ? 0.4 : 0.2),
-                  blurRadius: isSuccess ? 40 : 20,
-                  spreadRadius: isSuccess ? 4 : 1,
+                  color: _frameColor.withValues(
+                    alpha: isSuccess || isFailure || isAlreadyMarked
+                        ? 0.4
+                        : 0.2,
+                  ),
+                  blurRadius: isSuccess || isAlreadyMarked ? 40 : 20,
+                  spreadRadius: isSuccess || isAlreadyMarked ? 4 : 1,
                 ),
               ],
             ),
@@ -172,16 +183,12 @@ class BiometricScanFrame extends StatelessWidget {
 
           // HUD bracket corners
           Positioned.fill(
-            child: CustomPaint(
-              painter: ScanFramePainter(color: _frameColor),
-            ),
+            child: CustomPaint(painter: ScanFramePainter(color: _frameColor)),
           ),
 
           // Scanning line (only while scanning)
           if (isScanning)
-            const Positioned.fill(
-              child: ClipRect(child: ScanLine()),
-            ),
+            const Positioned.fill(child: ClipRect(child: ScanLine())),
 
           // Grid pattern overlay (subtle)
           Positioned.fill(
@@ -192,7 +199,7 @@ class BiometricScanFrame extends StatelessWidget {
           ),
 
           // Dot pattern in center
-          if (!isSuccess && !isFailure)
+          if (!isSuccess && !isFailure && !isAlreadyMarked)
             Positioned(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -212,7 +219,7 @@ class BiometricScanFrame extends StatelessWidget {
               tween: Tween(begin: 0.0, end: 1.0),
               duration: const Duration(milliseconds: 500),
               curve: Curves.elasticOut,
-              builder: (_, v, __) => Transform.scale(
+              builder: (_, v, _) => Transform.scale(
                 scale: v,
                 child: Container(
                   width: 80,
@@ -220,12 +227,43 @@ class BiometricScanFrame extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: const Color(0xFF00E676).withValues(alpha: 0.15),
-                    border: Border.all(color: const Color(0xFF00E676), width: 2),
+                    border: Border.all(
+                      color: const Color(0xFF00E676),
+                      width: 2,
+                    ),
                   ),
                   child: const Icon(
                     Icons.check_rounded,
                     color: Color(0xFF00E676),
                     size: 44,
+                  ),
+                ),
+              ),
+            ),
+
+          // Already-marked calendar icon
+          if (isAlreadyMarked)
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.elasticOut,
+              builder: (_, v, _) => Transform.scale(
+                scale: v,
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: const Color(0xFFFFAB00).withValues(alpha: 0.15),
+                    border: Border.all(
+                      color: const Color(0xFFFFAB00),
+                      width: 2,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.event_available_rounded,
+                    color: Color(0xFFFFAB00),
+                    size: 40,
                   ),
                 ),
               ),
@@ -237,7 +275,7 @@ class BiometricScanFrame extends StatelessWidget {
               tween: Tween(begin: 0.0, end: 1.0),
               duration: const Duration(milliseconds: 400),
               curve: Curves.easeOut,
-              builder: (_, v, __) => Transform.scale(
+              builder: (_, v, _) => Transform.scale(
                 scale: v,
                 child: Container(
                   width: 80,
@@ -245,7 +283,10 @@ class BiometricScanFrame extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: const Color(0xFFFF1744).withValues(alpha: 0.12),
-                    border: Border.all(color: const Color(0xFFFF1744), width: 2),
+                    border: Border.all(
+                      color: const Color(0xFFFF1744),
+                      width: 2,
+                    ),
                   ),
                   child: const Icon(
                     Icons.close_rounded,
