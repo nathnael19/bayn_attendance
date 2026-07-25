@@ -1,7 +1,5 @@
 import 'dart:io';
 import 'dart:math' as math;
-import 'dart:typed_data';
-
 import 'package:flutter/foundation.dart';
 
 import '../../domain/entities/face_embedding.dart';
@@ -54,9 +52,9 @@ class FaceRecognitionDatasourceImpl implements FaceRecognitionDatasource {
     required PersonLocalDatasource personLocalDatasource,
     required EmbeddingLocalDatasource embeddingLocalDatasource,
     required FaceEmbeddingExtractor embeddingExtractor,
-  })  : _personLocal = personLocalDatasource,
-        _embeddingLocal = embeddingLocalDatasource,
-        _extractor = embeddingExtractor;
+  }) : _personLocal = personLocalDatasource,
+       _embeddingLocal = embeddingLocalDatasource,
+       _extractor = embeddingExtractor;
 
   @override
   Future<void> reloadEmbeddings() async {

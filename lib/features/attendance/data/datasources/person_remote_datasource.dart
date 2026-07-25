@@ -1,6 +1,4 @@
 import 'dart:convert';
-import 'dart:typed_data';
-
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
@@ -28,6 +26,10 @@ abstract class PersonRemoteDatasource {
   Future<void> syncPersons(List<PersonModel> persons);
 
   Future<List<RemoteEmployee>> fetchAllEmployees();
+
+  /// Push all un-synced persons to the server.
+  /// Returns count of persons successfully pushed.
+  Future<int> pushUnsyncedPersons(List<PersonModel> persons);
 }
 
 class PersonRemoteDatasourceImpl implements PersonRemoteDatasource {
@@ -110,9 +112,10 @@ class PersonRemoteDatasourceImpl implements PersonRemoteDatasource {
     }
 
     final uri = Uri.parse('$_kBaseUrl$_kRegisterEndpoint');
-    final response = await httpClient.get(uri, headers: {
-      if (_kApiKey.isNotEmpty) 'X-Api-Key': _kApiKey,
-    });
+    final response = await httpClient.get(
+      uri,
+      headers: {if (_kApiKey.isNotEmpty) 'X-Api-Key': _kApiKey},
+    );
 
     if (response.statusCode != 200) {
       throw Exception(
@@ -121,7 +124,28 @@ class PersonRemoteDatasourceImpl implements PersonRemoteDatasource {
     }
 
     final list = jsonDecode(response.body) as List<dynamic>;
-    return list.map((e) => RemoteEmployee.fromJson(e as Map<String, dynamic>)).toList();
+    return list
+        .map((e) => RemoteEmployee.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
+  Future<int> pushUnsyncedPersons(List<PersonModel> persons) async {
+    if (_kBaseUrl.isEmpty) {
+      debugPrint('[RemoteDatasource] Base URL not set — skipping push.');
+      return 0;
+    }
+
+    int successCount = 0;
+    for (final person in persons) {
+      try {
+        await registerPerson(person);
+        successCount++;
+      } catch (e) {
+        debugPrint('[RemoteDatasource] Push failed for ${person.name}: $e');
+      }
+    }
+    return successCount;
   }
 }
 
@@ -147,11 +171,16 @@ class RemoteEmployee {
   factory RemoteEmployee.fromJson(Map<String, dynamic> json) {
     final rawEmbeddings = json['embeddings'] as List<dynamic>? ?? [];
     return RemoteEmployee(
-      serverId: json['server_id']?.toString() ?? json['employee_id']?.toString() ?? '',
+      serverId:
+          json['server_id']?.toString() ??
+          json['employee_id']?.toString() ??
+          '',
       name: json['name']?.toString() ?? '',
       employeeId: json['employee_id']?.toString() ?? '',
       department: json['department']?.toString() ?? '',
-      registeredAt: DateTime.tryParse(json['registered_at']?.toString() ?? '') ?? DateTime.now(),
+      registeredAt:
+          DateTime.tryParse(json['registered_at']?.toString() ?? '') ??
+          DateTime.now(),
       embeddings: rawEmbeddings
           .map((e) => RemoteEmbedding.fromJson(e as Map<String, dynamic>))
           .toList(),
