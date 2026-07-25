@@ -9,7 +9,7 @@ import '../cubit/attendance_cubit.dart';
 import '../utils/camera_vision_utils.dart';
 import 'attendance_page.dart';
 import 'home/widgets/home_page_sections.dart';
-import 'settings_page.dart';
+import '../../../auth/presentation/pages/admin_login_page.dart';
 
 class HomePage extends StatefulWidget {
   final bool enableAutoAttendanceRedirect;
@@ -121,11 +121,11 @@ class _HomePageState extends State<HomePage> {
 
     await Navigator.of(context).push(
       PageRouteBuilder(
-        pageBuilder: (_, animation, __) => BlocProvider(
+        pageBuilder: (_, animation, _) => BlocProvider(
           create: (_) => di.sl<AttendanceCubit>(),
           child: const AttendancePage(),
         ),
-        transitionsBuilder: (_, animation, __, child) {
+        transitionsBuilder: (_, animation, _, child) {
           return FadeTransition(
             opacity: CurvedAnimation(parent: animation, curve: Curves.easeIn),
             child: child,
@@ -144,7 +144,7 @@ class _HomePageState extends State<HomePage> {
   void _openSettings() {
     Navigator.of(
       context,
-    ).push(MaterialPageRoute(builder: (_) => const SettingsPage()));
+    ).push(MaterialPageRoute(builder: (_) => const AdminLoginPage()));
   }
 
   @override

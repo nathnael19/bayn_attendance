@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+
+import 'home_page.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../injection_container.dart' as di;
 import '../../data/datasources/embedding_local_datasource.dart';
 import '../../data/datasources/person_remote_datasource.dart';
+import '../../domain/repositories/attendance_repository.dart';
 import '../../domain/repositories/person_repository.dart';
 import '../cubit/register_cubit.dart';
 import '../cubit/users_cubit.dart';
@@ -20,9 +23,11 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   bool _isSyncing = false;
+  bool _isPushSyncing = false;
   int _enrolledUsers = 0;
   int _faceEmbeddings = 0;
   String _lastSyncLabel = 'Last sync · Not yet synced';
+  String _lastPushSyncLabel = 'Last push · Not yet synced';
 
   @override
   void initState() {
@@ -80,6 +85,42 @@ class _SettingsPageState extends State<SettingsPage> {
       _showSnackBar('Sync failed: $e', backgroundColor: Colors.redAccent);
     } finally {
       if (mounted) setState(() => _isSyncing = false);
+    }
+  }
+
+  Future<void> _syncToServer() async {
+    setState(() => _isPushSyncing = true);
+    try {
+      final personRepo = di.sl<PersonRepository>();
+      final attendanceRepo = di.sl<AttendanceRepository>();
+
+      final personResult = await personRepo.pushToServer();
+      if (!mounted) return;
+
+      // Also sync attendance records
+      await attendanceRepo.syncPending();
+      if (!mounted) return;
+
+      setState(() {
+        _lastPushSyncLabel = _formatLastSync(DateTime.now());
+      });
+
+      _showSnackBar(
+        'Pushed ${personResult.employeesSynced} employees with '
+        '${personResult.embeddingsSynced} embeddings to server',
+        backgroundColor: Colors.green.shade700,
+      );
+    } on BackendNotConfiguredException {
+      if (!mounted) return;
+      _showSnackBar(
+        'Backend not configured. Set BAYN_API_BASE_URL.',
+        backgroundColor: Colors.orange.shade700,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackBar('Push failed: $e', backgroundColor: Colors.redAccent);
+    } finally {
+      if (mounted) setState(() => _isPushSyncing = false);
     }
   }
 
@@ -158,11 +199,14 @@ class _SettingsPageState extends State<SettingsPage> {
                     const SizedBox(height: 32),
                     _SyncSection(
                       colors: colors,
-                      lastSyncLabel: _lastSyncLabel,
+                      lastPullSyncLabel: _lastSyncLabel,
+                      lastPushSyncLabel: _lastPushSyncLabel,
                       enrolledUsers: _enrolledUsers,
                       faceEmbeddings: _faceEmbeddings,
-                      isSyncing: _isSyncing,
-                      onSync: _isSyncing ? null : _syncFromServer,
+                      isPullSyncing: _isSyncing,
+                      isPushSyncing: _isPushSyncing,
+                      onPullSync: _isSyncing ? null : _syncFromServer,
+                      onPushSync: _isPushSyncing ? null : _syncToServer,
                     ),
                     const SizedBox(height: 72),
                     _PrivacyFooter(colors: colors),
@@ -190,15 +234,23 @@ class _SettingsHeader extends StatelessWidget {
       children: [
         Semantics(
           button: true,
-          label: 'Go back',
+          label: 'Logout',
           child: Tooltip(
-            message: 'Go back',
+            message: 'Logout',
             child: Material(
               color: colors.surface,
               shape: const CircleBorder(),
               clipBehavior: Clip.antiAlias,
               child: InkWell(
-                onTap: () => Navigator.of(context).maybePop(),
+                onTap: () {
+                  Navigator.of(context).pushAndRemoveUntil(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          const HomePage(enableAutoAttendanceRedirect: true),
+                    ),
+                    (route) => false,
+                  );
+                },
                 child: Container(
                   width: 44,
                   height: 44,
@@ -207,7 +259,7 @@ class _SettingsHeader extends StatelessWidget {
                     border: Border.all(color: colors.border),
                   ),
                   child: Icon(
-                    Icons.arrow_back_rounded,
+                    Icons.logout_rounded,
                     color: colors.text,
                     size: 21,
                   ),
@@ -434,19 +486,25 @@ class _PeopleSection extends StatelessWidget {
 
 class _SyncSection extends StatelessWidget {
   final _SettingsColors colors;
-  final String lastSyncLabel;
+  final String lastPullSyncLabel;
+  final String lastPushSyncLabel;
   final int enrolledUsers;
   final int faceEmbeddings;
-  final bool isSyncing;
-  final VoidCallback? onSync;
+  final bool isPullSyncing;
+  final bool isPushSyncing;
+  final VoidCallback? onPullSync;
+  final VoidCallback? onPushSync;
 
   const _SyncSection({
     required this.colors,
-    required this.lastSyncLabel,
+    required this.lastPullSyncLabel,
+    required this.lastPushSyncLabel,
     required this.enrolledUsers,
     required this.faceEmbeddings,
-    required this.isSyncing,
-    required this.onSync,
+    required this.isPullSyncing,
+    required this.isPushSyncing,
+    required this.onPullSync,
+    required this.onPushSync,
   });
 
   @override
@@ -458,7 +516,7 @@ class _SyncSection extends StatelessWidget {
           colors: colors,
           index: '02 / CONNECTION',
           title: 'Server sync',
-          trailing: 'PULL ONLY',
+          trailing: 'BIDIRECTIONAL',
           accent: colors.sky,
           trailingBottomPadding: 2,
         ),
@@ -472,45 +530,89 @@ class _SyncSection extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // PULL SYNC COLUMN
                   Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 1),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _MicroLabel(
-                            'LAST SYNC',
-                            color: colors.muted,
-                            fontSize: 9,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _MicroLabel(
+                          'PULL FROM SERVER',
+                          color: colors.muted,
+                          fontSize: 9,
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          lastPullSyncLabel,
+                          style: TextStyle(
+                            color: colors.text,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            height: 1.15,
                           ),
-                          const SizedBox(height: 10),
-                          Text(
-                            lastSyncLabel,
-                            style: TextStyle(
-                              color: colors.text,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              height: 1.15,
-                            ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Download $enrolledUsers employees',
+                          style: TextStyle(
+                            color: colors.mutedStrong,
+                            fontSize: 12,
+                            height: 1.3,
                           ),
-                          const SizedBox(height: 14),
-                          Text(
-                            '$enrolledUsers employees · $faceEmbeddings face embeddings',
-                            style: TextStyle(
-                              color: colors.mutedStrong,
-                              fontSize: 13,
-                              height: 1.35,
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 12),
                   _SyncButton(
                     colors: colors,
-                    isSyncing: isSyncing,
-                    onTap: onSync,
+                    isSyncing: isPullSyncing,
+                    onTap: onPullSync,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Container(height: 1, color: colors.divider),
+              const SizedBox(height: 16),
+              // PUSH SYNC COLUMN
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _MicroLabel(
+                          'PUSH TO SERVER',
+                          color: colors.muted,
+                          fontSize: 9,
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          lastPushSyncLabel,
+                          style: TextStyle(
+                            color: colors.text,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            height: 1.15,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Upload $enrolledUsers local employees',
+                          style: TextStyle(
+                            color: colors.mutedStrong,
+                            fontSize: 12,
+                            height: 1.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  _SyncButton(
+                    colors: colors,
+                    isSyncing: isPushSyncing,
+                    onTap: onPushSync,
                   ),
                 ],
               ),
@@ -531,7 +633,7 @@ class _SyncSection extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Server payload replaces local people and face embeddings.',
+                      'Pull replaces local data. Push uploads un-synced employees and attendance records.',
                       style: TextStyle(
                         color: colors.muted,
                         fontSize: 11,
@@ -573,8 +675,8 @@ class _SyncButton extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           child: SizedBox(
-            width: 122,
-            height: 112,
+            width: 90,
+            height: 85,
             child: AnimatedOpacity(
               duration: const Duration(milliseconds: 180),
               opacity: onTap == null ? 0.65 : 1,
@@ -583,10 +685,10 @@ class _SyncButton extends StatelessWidget {
                 children: [
                   if (isSyncing)
                     const SizedBox(
-                      width: 23,
-                      height: 23,
+                      width: 18,
+                      height: 18,
                       child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
+                        strokeWidth: 2,
                         color: AppTheme.homeLightText,
                       ),
                     )
@@ -594,16 +696,16 @@ class _SyncButton extends StatelessWidget {
                     Icon(
                       Icons.cloud_download_outlined,
                       color: colors.darkText,
-                      size: 23,
+                      size: 18,
                     ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   Text(
-                    isSyncing ? 'Syncing…' : 'Sync from\nserver',
+                    isSyncing ? 'Syncing…' : 'Sync',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       color: colors.darkText,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
                       height: 1.1,
                     ),
                   ),
