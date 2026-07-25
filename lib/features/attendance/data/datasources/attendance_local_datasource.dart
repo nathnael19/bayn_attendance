@@ -8,6 +8,13 @@ abstract class AttendanceLocalDatasource {
   Future<List<AttendanceRecordModel>> getAllRecords();
   Future<List<AttendanceRecordModel>> getUnsynced();
   Future<void> markSynced(int localId, String serverId);
+
+  /// Returns the existing record for today if the person already marked attendance, null otherwise.
+  Future<AttendanceRecordModel?> getTodayRecordForPerson(String personId);
+
+  /// Returns ALL scan records for a person today, ordered by time ascending.
+  /// Used by the repository to determine which scan type comes next.
+  Future<List<AttendanceRecordModel>> getPersonTodayScans(String personId);
 }
 
 class AttendanceLocalDatasourceImpl implements AttendanceLocalDatasource {
@@ -41,10 +48,19 @@ class AttendanceLocalDatasourceImpl implements AttendanceLocalDatasource {
   Future<List<AttendanceRecordModel>> getTodayRecords() async {
     final db = await _db;
     final today = DateTime.now();
-    final start =
-        DateTime(today.year, today.month, today.day).toIso8601String();
-    final end = DateTime(today.year, today.month, today.day, 23, 59, 59)
-        .toIso8601String();
+    final start = DateTime(
+      today.year,
+      today.month,
+      today.day,
+    ).toIso8601String();
+    final end = DateTime(
+      today.year,
+      today.month,
+      today.day,
+      23,
+      59,
+      59,
+    ).toIso8601String();
 
     final rows = await db.query(
       'attendance_records',
@@ -85,5 +101,65 @@ class AttendanceLocalDatasourceImpl implements AttendanceLocalDatasource {
       where: 'id = ?',
       whereArgs: [localId],
     );
+  }
+
+  @override
+  Future<AttendanceRecordModel?> getTodayRecordForPerson(
+    String personId,
+  ) async {
+    final db = await _db;
+    final today = DateTime.now();
+    final start = DateTime(
+      today.year,
+      today.month,
+      today.day,
+    ).toIso8601String();
+    final end = DateTime(
+      today.year,
+      today.month,
+      today.day,
+      23,
+      59,
+      59,
+    ).toIso8601String();
+
+    final rows = await db.query(
+      'attendance_records',
+      where: 'person_id = ? AND checked_in_at BETWEEN ? AND ?',
+      whereArgs: [personId, start, end],
+      orderBy: 'checked_in_at ASC',
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    return AttendanceRecordModel.fromMap(rows.first);
+  }
+
+  @override
+  Future<List<AttendanceRecordModel>> getPersonTodayScans(
+    String personId,
+  ) async {
+    final db = await _db;
+    final today = DateTime.now();
+    final start = DateTime(
+      today.year,
+      today.month,
+      today.day,
+    ).toIso8601String();
+    final end = DateTime(
+      today.year,
+      today.month,
+      today.day,
+      23,
+      59,
+      59,
+    ).toIso8601String();
+
+    final rows = await db.query(
+      'attendance_records',
+      where: 'person_id = ? AND checked_in_at BETWEEN ? AND ?',
+      whereArgs: [personId, start, end],
+      orderBy: 'checked_in_at ASC',
+    );
+    return rows.map(AttendanceRecordModel.fromMap).toList();
   }
 }
