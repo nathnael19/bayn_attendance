@@ -6,6 +6,7 @@ import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import '../cubit/attendance_cubit.dart';
 import '../cubit/attendance_state.dart';
+import '../../domain/entities/attendance_record.dart';
 import '../utils/camera_vision_utils.dart';
 import 'attendance/widgets/attendance_page_sections.dart';
 
@@ -121,8 +122,11 @@ class _AttendancePageState extends State<AttendancePage>
     if (_isDetecting) return;
     final cubitState = context.read<AttendanceCubit>().state;
     // Stop processing once we have a result
-    if (cubitState is AttendanceSuccess || cubitState is AttendanceFailure)
+    if (cubitState is AttendanceSuccess ||
+        cubitState is AttendanceAlreadyMarked ||
+        cubitState is AttendanceFailure) {
       return;
+    }
 
     _isDetecting = true;
     try {
@@ -224,8 +228,16 @@ class _AttendancePageState extends State<AttendancePage>
           if (state is AttendanceScanning) {
             _captureAndRecognize();
           } else if (state is AttendanceSuccess) {
-            _speak('Attendance marked successfully.');
+            final msg = state.scanType == ScanType.checkIn
+                ? 'Check-in recorded. Have a great day!'
+                : state.scanType == ScanType.lunchBreak
+                ? 'Return from lunch recorded. Welcome back!'
+                : 'Check-out recorded. See you tomorrow!';
+            _speak(msg);
             _onSuccess();
+          } else if (state is AttendanceAlreadyMarked) {
+            _speak('All shifts have been recorded for today.');
+            _onSuccess(); // reuse same 2-second delay + pop
           } else if (state is AttendanceFailure) {
             _speak('Failed to register attendance. Please try again.');
           }

@@ -40,6 +40,7 @@ Check-in events.
 | `status` | TEXT | NOT NULL DEFAULT 'present' | `on_time`, `late`, `early_leave` |
 | `shift_id` | INTEGER | | FK to shifts.id |
 | `location` | TEXT | | Which kiosk/device captured it |
+| `scan_type` | TEXT | NOT NULL DEFAULT 'check_in' | `check_in`, `lunch_break`, `check_out` |
 | `is_synced` | INTEGER | NOT NULL DEFAULT 0 | 0 = pending, 1 = synced |
 
 ### `face_embeddings`
